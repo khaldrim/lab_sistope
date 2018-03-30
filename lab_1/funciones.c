@@ -212,19 +212,29 @@ unsigned int ReadLE4(FILE *fp)
  * Output     : 
  * Description: 
  */
-void readPixel(FILE *fp)
+void readPixelData(FILE *fp, int width, int height)
 {
-    unsigned int buf[3];
-    unsigned char result;
+    unsigned char *data = (char*)calloc((3*width*height),sizeof(char));
+    fread(data, sizeof(unsigned char), (3*width*height), fp);
+
+    printf("Size: %i\n", (width*height));
+
     int i;
+    for(i = 0; i < (width*height); i+= 3)
+    {
+        unsigned char tmp = data[i];
+        data[i] = data[i+2];
+        data[i+2] = tmp;
+
+        printf("R: %i G: %i B: %i.\n", data[i], data[i+1], data[i+2]);
+    }
     
-    fread(buf, 1, 3, fp);
     /*
     for (i = 2; i >= 0; i--) {
         result = (result << 8) | (unsigned int) buf[i];
     }*/
 
-    //printf("Pixel: %i %i %i.\n", buf[0], buf[1], buf[2]);
+    //printf("Pixel: %i %i %i .\n", buf[0], buf[1], buf[2]);
 }
 
 
@@ -337,11 +347,9 @@ void mainMenu(int cflag, int uflag, int nflag, int bflag)
         
         if(bmpFileHeader->headersize == 40)
         {   
-            int i;
-            for(i=0; i < (bmpWinInfoHeader->winImgSize); i+=(bmpWinInfoHeader->winBitsPerPixel))
-            {
-                readPixel(fp);
-            }
+            
+            readPixelData(fp,bmpWinInfoHeader->winWidth, bmpWinInfoHeader->winHeight);
+            
         }
 
         cvalue--;
