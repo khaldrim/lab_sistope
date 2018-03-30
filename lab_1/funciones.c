@@ -7,15 +7,13 @@
 #include "funciones.h"
 
 
-unsigned short ReadLE2(FILE *fp);
-unsigned int ReadLE4(FILE *fp);
-
 /*
- * Read bitmap file header
+ * Input      : Puntero hacia el archivo bmp que se leera.
+ * Output     : Puntero hacia la estructura BMPFILEHEADER que almacena la informacion de cabezera.
+ * Description: Inicializa las variables 
  */
-BITMAPFILEHEADER *ReadBMFileHeader(FILE *fp)
+BMPFILEHEADER *ReadBMPFileHeader(FILE *fp, BMPFILEHEADER  *header)
 {
-    BITMAPFILEHEADER *header;
     char           filetype[3] = {'\0', '\0', '\0'};
     unsigned int   filesize;
     unsigned short reserved1;
@@ -37,18 +35,19 @@ BITMAPFILEHEADER *ReadBMFileHeader(FILE *fp)
     /* Offset (4 bytes) */
     offset = (unsigned long) ReadLE4(fp);
 
-    header = (BITMAPFILEHEADER *) malloc(sizeof(BITMAPFILEHEADER));
-    strcpy(header->bfType, filetype);
-    header->bfSize      = filesize;
-    header->bfReserved1 = reserved1;
-    header->bfReserved2 = reserved2;
-    header->bfOffBits   = offset;
+    strcpy(header->fileType, filetype);
+    header->filesize   = filesize;
+    header->reserverd1 = reserved1;
+    header->reserverd2 = reserved2;
+    header->offBits    = offset;
 
     return header;
 }
 
 /*
- * Returns size of information header
+ * Input      : 
+ * Output     : 
+ * Description: 
  */
 int SizeOfInformationHeader(FILE *fp)
 {
@@ -67,11 +66,12 @@ int SizeOfInformationHeader(FILE *fp)
 }
 
 /*
- * Read bitmap core header (OS/2 bitmap)
+ * Input      : 
+ * Output     : 
+ * Description: 
  */
-BITMAPCOREHEADER *ReadBMCoreHeader(FILE *fp)
+BMPINFOOSHEADER *ReadBMPOSInfoHeader(FILE *fp, BMPINFOOSHEADER *header)
 {
-    BITMAPCOREHEADER *header;
     unsigned int   headersize;
     int            width;
     int            height;
@@ -93,33 +93,33 @@ BITMAPCOREHEADER *ReadBMCoreHeader(FILE *fp)
     /* Bit Count (2 bytes) */
     bitcount = (unsigned short) ReadLE2(fp);
 
-    header = (BITMAPCOREHEADER *) malloc(sizeof(BITMAPCOREHEADER));
-    header->bcSize     = headersize;
-    header->bcWidth    = width;
-    header->bcHeight   = height;
-    header->bcPlanes   = planes;
-    header->bcBitCount = bitcount;
+    header->osSize         = headersize;
+    header->osWidth        = width;
+    header->osHeight       = height;
+    header->osColorPlanes  = planes;
+    header->osBitsPerPixel = bitcount;
 
     return header;
 }
 
 /*
- * Read bitmap info header (Windows bitmap)
+ * Input      : 
+ * Output     : 
+ * Description: 
  */
-BITMAPINFOHEADER *ReadBMInfoHeader(FILE *fp)
+BMPINFOWINHEADER *ReadBMPWinInfoHeader(FILE *fp, BMPINFOWINHEADER *header)
 {
-    BITMAPINFOHEADER *header;
-    unsigned int   headersize;
-    int            width;
-    int            height;
-    unsigned short planes;
-    unsigned short bitcount;
-    unsigned int   compression;
-    unsigned int   size_image;
-    int            x_pix_per_meter;
-    int            y_pix_per_meter;
-    unsigned int   clr_used;
-    unsigned int   clr_important;
+    unsigned int     headersize;
+    int              width;
+    int              height;
+    unsigned short   planes;
+    unsigned short   bitcount;
+    unsigned int     compression;
+    unsigned int     size_image;
+    int              x_pix_per_meter;
+    int              y_pix_per_meter;
+    unsigned int     clr_palette;
+    unsigned int     clr_used;
 
     /* Header size (4 bytes) */
     headersize = (unsigned int) ReadLE4(fp);
@@ -149,29 +149,30 @@ BITMAPINFOHEADER *ReadBMInfoHeader(FILE *fp)
     y_pix_per_meter = (int) ReadLE4(fp);
 
     /* Color used (4 bytes) */
-    clr_used = (unsigned int) ReadLE4(fp);
+    clr_palette = (unsigned int) ReadLE4(fp);
 
     /* Color important (4 bytes) */
-    clr_important = (unsigned int) ReadLE4(fp);
+    clr_used = (unsigned int) ReadLE4(fp);
 
-    header = (BITMAPINFOHEADER *) malloc(sizeof(BITMAPINFOHEADER));
-    header->biSize         = headersize;
-    header->biWidth        = width;
-    header->biHeight       = height;
-    header->biPlanes       = planes;
-    header->biBitCount     = bitcount;
-    header->biCompression  = compression;
-    header->biSizeImage    = size_image;
-    header->biXPixPerMeter = x_pix_per_meter;
-    header->biYPixPerMeter = y_pix_per_meter;
-    header->biClrUsed      = clr_used;
-    header->biClrImportant = clr_important;
+    header->winSize         = headersize;
+    header->winWidth        = width;
+    header->winHeight       = height;
+    header->winColorPlanes  = planes;
+    header->winBitsPerPixel = bitcount;
+    header->winCompression  = compression;
+    header->winImgSize      = size_image;
+    header->winXPixPerMeter = x_pix_per_meter;
+    header->winYPixPerMeter = y_pix_per_meter;
+    header->winColorPalette = clr_palette;
+    header->winColorUsed    = clr_used;
 
     return header;
 }
 
 /*
- * Read 2 bytes in little endian
+ * Input      : 
+ * Output     : 
+ * Description: 
  */
 unsigned short ReadLE2(FILE *fp)
 {
@@ -188,7 +189,9 @@ unsigned short ReadLE2(FILE *fp)
 }
 
 /*
- * Read 4 bytes in little endian
+ * Input      : 
+ * Output     : 
+ * Description: 
  */
 unsigned int ReadLE4(FILE *fp)
 {
@@ -204,118 +207,149 @@ unsigned int ReadLE4(FILE *fp)
     return result;
 }
 
-
 /*
-    Entrada    :
-    Salida     :
-    Descripcion:
-*/
-void leerImagen()
+ * Input      : 
+ * Output     : 
+ * Description: 
+ */
+void readPixel(FILE *fp)
 {
-
-    FILE *file_pointer = NULL;
-    file_pointer = fopen("imagenes/land.bmp", "r");
-    unsigned int datos[10];
+    unsigned int buf[3];
+    unsigned char result;
+    int i;
     
-    if(file_pointer != NULL)
-    {
-        fread(datos, sizeof(unsigned int), 10, file_pointer);
-        int i;
-        for(i=0;i<10;i++)
-            printf("valor: %d\n",datos[i]);
-        
-        fclose(file_pointer);
-    }
-    else
-    {
-        printf("Error al abrir el archivo.\n");
-        fclose(file_pointer);
-    }
-
+    fread(buf, 1, 3, fp);
     /*
-    char *buf;
-    int bytesRead;
-    int file_pointer;
+    for (i = 2; i >= 0; i--) {
+        result = (result << 8) | (unsigned int) buf[i];
+    }*/
 
-    file_pointer = open("imagenes/land.bmp", O_RDONLY);
-    printf("Dir. Mem. Archivo: %d\n", file_pointer);
-    do
-    {
-        bytesRead = read(file_pointer,buf,787510);
-        printf("bytesRead = %d\n",bytesRead);
-    }while(bytesRead != -1);
-    close(file_pointer);
-    */
+    //printf("Pixel: %i %i %i.\n", buf[0], buf[1], buf[2]);
 }
 
 
+
+/*
+ * Input      : 
+ * Output     : 
+ * Description: 
+ */
+FILE* readImageHeader(int img_num, FILE *fp,BMPFILEHEADER *bmpfh, BMPINFOOSHEADER *bmpOSIH, BMPINFOWINHEADER *bmpWinIH)
+{
+    char fileNumber[5];
+    char fileName[30] = "imagenes/imagen_";
+
+    sprintf(fileNumber, "%d", img_num);
+    strcat(fileName, fileNumber);
+    strcat(fileName, ".bmp");
+
+    if((fp = fopen(fileName,"r")) == NULL)
+    {
+        printf("No se logro abrir el archivo: %s.\n", fileName);
+        abort();
+    }
+
+    bmpfh = ReadBMPFileHeader(fp, bmpfh);
+    if(strcmp(bmpfh->fileType, "BM") != 0)
+    {
+        printf("El archivo no es un Bitmap.\n");
+        abort();
+    }
+
+    bmpfh->headersize = SizeOfInformationHeader(fp);
+    if(bmpfh->headersize == 12)
+    {
+        bmpOSIH = ReadBMPOSInfoHeader(fp, bmpOSIH);
+    }
+    else if(bmpfh->headersize == 40)
+    {
+        bmpWinIH = ReadBMPWinInfoHeader(fp, bmpWinIH);
+    }
+    else
+    {
+        printf("Bitmap no soportado.\n");
+        abort();
+    }
+
+
+    printf("\n\nFile type          = %s\n", bmpfh->fileType);
+    printf("File size          = %d bytes\n", bmpfh->filesize);
+    printf("Data offset        = %ld bytes\n", bmpfh->offBits);
+    if (bmpfh->headersize == 12) 
+    {
+        printf("Info header size   = %d bytes\n", bmpOSIH->osSize);
+        printf("Width              = %d pixels\n", bmpOSIH->osWidth);
+        printf("Height             = %d pixels\n", bmpOSIH->osHeight);
+        printf("Planes             = %d\n", bmpOSIH->osColorPlanes);
+        printf("Bits per Pixel     = %d bits/pixel\n", bmpOSIH->osBitsPerPixel);
+    } 
+    
+    if (bmpfh->headersize == 40) 
+    {
+        printf("Info header size   = %d bytes\n", bmpWinIH->winSize);
+        printf("Width              = %ld pixels\n", bmpWinIH->winWidth);
+        printf("Height             = %ld pixels\n", bmpWinIH->winHeight);
+        printf("Color Planes       = %d\n", bmpWinIH->winColorPlanes);
+        printf("Bits per Pixel     = %d bits/pixel\n", bmpWinIH->winBitsPerPixel);
+        printf("Compression        = %d\n", bmpWinIH->winCompression);
+        printf("Size image         = %d bytes\n", bmpWinIH->winImgSize);
+        printf("X pixels per meter = %ld\n", bmpWinIH->winXPixPerMeter);
+        printf("Y pixels per meter = %ld\n", bmpWinIH->winYPixPerMeter);
+        printf("Color Palette      = %ld colors\n", bmpWinIH->winColorPalette);
+        printf("Color Used         = %ld colors\n", bmpWinIH->winColorUsed);
+    }
+
+    return fp;
+}
 
 /*
     Entrada    : Ingresan los valores de las banderas solicitadas como parametros al usuario.
     Salida     : Retorna un entero, con dos valores posibles 1 y 0. Retorna 1 si la funcion cumplio su flujo normal y retorna 0 si existe algun error.
     Descripcion: Funcion que bla bla... 
 */
-int menuPrincipal(int cflag, int uflag, int nflag, int bflag)
+void mainMenu(int cflag, int uflag, int nflag, int bflag)
 {
-    FILE *fp;
-    BITMAPFILEHEADER *bmFileHeader = NULL;
-    BITMAPCOREHEADER *bmCoreHeader = NULL;
-    BITMAPINFOHEADER *bmInfoHeader = NULL;
-    int headersize;
+    int cvalue = 0, i = 1;
+    cvalue = cflag;
+    
+    /* Etapas del Pipeline:
+            1. Leer el la informacion de cabezera de un archivo bitmap.
+            2. Leer pixel por pixel la imagen, aplicando formula del enunciado.
+            3. Determinar si el pixel debe ser transformado a blanco o a negro, dependiendo del umbral.
+            4. Clasificar la imagen como 'nearly black' si esta supera el umbral.
+            5. Crear la imagen binarizada.
+            6. Repetir Pipeline si aun quedan imagenes por leer.      
+            7. Imprimir por pantalla la informacion solicitada si la bandera -b esta activa.
+    */
+    
+    while(cvalue > 0)
+    {
+        FILE *fp = NULL;
+        BMPFILEHEADER    *bmpFileHeader    = NULL;
+        BMPINFOOSHEADER  *bmpOsInfoHeader  = NULL;
+        BMPINFOWINHEADER *bmpWinInfoHeader = NULL;
 
+        bmpFileHeader    = (BMPFILEHEADER *) malloc(sizeof(BMPFILEHEADER));
+        bmpOsInfoHeader  = (BMPINFOOSHEADER *) malloc(sizeof(BMPINFOOSHEADER));
+        bmpWinInfoHeader = (BMPINFOWINHEADER*) malloc(sizeof(BMPINFOWINHEADER));
+        
+        fp = readImageHeader(i, fp,bmpFileHeader, bmpOsInfoHeader, bmpWinInfoHeader);
+        
+        if(bmpFileHeader->headersize == 40)
+        {   
+            int i;
+            for(i=0; i < (bmpWinInfoHeader->winImgSize); i+=(bmpWinInfoHeader->winBitsPerPixel))
+            {
+                readPixel(fp);
+            }
+        }
 
-    if ((fp = fopen("imagenes/tiger.bmp", "rb")) == NULL) {
-        printf("Cannot open file.\n");
-        exit(1);
+        cvalue--;
+        i++;
+
+        fclose(fp);
+        free(bmpFileHeader);
+        free(bmpOsInfoHeader);
+        free(bmpWinInfoHeader);
     }
-    bmFileHeader = ReadBMFileHeader(fp);
-    if (strcmp(bmFileHeader->bfType, "BM") != 0) {
-        printf("The file is not BITMAP.\n");
-        exit(1);
-    }
-    headersize = SizeOfInformationHeader(fp);
-    if (headersize == 12) {
-        bmCoreHeader = ReadBMCoreHeader(fp);
-    } else if (headersize == 40) {
-        bmInfoHeader = ReadBMInfoHeader(fp);
-    } else {
-        printf("Unsupported BITMAP.\n");
-        exit(1);
-    }
-    fclose(fp);
-
-    printf("File type          = %s\n", bmFileHeader->bfType);
-    printf("File size          = %d bytes\n", bmFileHeader->bfSize);
-    printf("Data offset        = %ld bytes\n", bmFileHeader->bfOffBits);
-    if (headersize == 12) {
-        printf("Info header size   = %d bytes\n", bmCoreHeader->bcSize);
-        printf("Width              = %d pixels\n", bmCoreHeader->bcWidth);
-        printf("Height             = %d pixels\n", bmCoreHeader->bcHeight);
-        printf("Planes             = %d\n", bmCoreHeader->bcPlanes);
-        printf("Bit count          = %d bits/pixel\n", bmCoreHeader->bcBitCount);
-    } else if (headersize == 40) {
-        printf("Info header size   = %d bytes\n", bmInfoHeader->biSize);
-        printf("Width              = %ld pixels\n", bmInfoHeader->biWidth);
-        printf("Height             = %ld pixels\n", bmInfoHeader->biHeight);
-        printf("Planes             = %d\n", bmInfoHeader->biPlanes);
-        printf("Bit count          = %d bits/pixel\n", bmInfoHeader->biBitCount);
-        printf("Compression        = %d\n", bmInfoHeader->biCompression);
-        printf("Size image         = %d bytes\n", bmInfoHeader->biSizeImage);
-        printf("X pixels per meter = %ld\n", bmInfoHeader->biXPixPerMeter);
-        printf("Y pixels per meter = %ld\n", bmInfoHeader->biYPixPerMeter);
-        printf("Color used         = %ld colors\n", bmInfoHeader->biClrUsed);
-    }
-
-    free(bmFileHeader);
-    free(bmCoreHeader);
-    free(bmInfoHeader);
-
-    //Llamar a la funcion que lee las imagenes
-
-    //Llamar a la funcion que convierte a escala de grises
-
-    //Llamar a la funcion que binariza la imagen
-
-    //llamar a la funcion que clasifica
-    return 1;
 }

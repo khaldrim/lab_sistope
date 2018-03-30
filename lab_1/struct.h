@@ -4,55 +4,51 @@
 #define _STRUCT_H_
 
 /*
- *
- * Reading bitmap file informations.
- *
+ * Bitmap file header.
  */
+typedef struct _BMPFILEHEADER 
+{
+    char           fileType[3]; /* 2 bytes + null char */
+    unsigned int   filesize;    /* 4 bytes */
+    unsigned short reserverd1;  /* 2 bytes */
+    unsigned short reserverd2;  /* 2 bytes */
+    unsigned long  offBits;     /* 4 bytes */
+    unsigned int   headersize;  /* 12 or 40 */
+
+} BMPFILEHEADER;
 
 /*
- * Bitmap file header
+ * Bitmap infor header (OS/2)
  */
-typedef struct tagBITMAPFILEHEADER {
-    char           bfType[3];    /* 2 bytes + null char */
-    unsigned int   bfSize;       /* 4 bytes */
-    unsigned short bfReserved1;  /* 2 bytes */
-    unsigned short bfReserved2;  /* 2 bytes */
-    unsigned long  bfOffBits;    /* 4 bytes */
-} BITMAPFILEHEADER;
+typedef struct _BMPINFOOSHEADER
+{
+    unsigned int   osSize;         /* 4 bytes */
+    short          osWidth;        /* 2 bytes */
+    short          osHeight;       /* 2 bytes */
+    unsigned short osColorPlanes;  /* 2 bytes */
+    unsigned short osBitsPerPixel; /* 2 bytes */
+
+} BMPINFOOSHEADER;
 
 /*
  * Bitmap info header (Windows)
  */
-typedef struct tagBITMAPINFOHEADER {
-    unsigned int   biSize;          /* 4 bytes */
-    long           biWidth;         /* 4 bytes */
-    long           biHeight;        /* 4 bytes */
-    unsigned short biPlanes;        /* 2 bytes */
-    unsigned short biBitCount;      /* 2 bytes */
-    unsigned int   biCompression;   /* 4 bytes */
-    unsigned int   biSizeImage;     /* 4 bytes */
-    long           biXPixPerMeter;  /* 4 bytes */
-    long           biYPixPerMeter;  /* 4 bytes */
-    unsigned long  biClrUsed;       /* 4 bytes */
-    unsigned long  biClrImportant;  /* 4 bytes */
-} BITMAPINFOHEADER;
+typedef struct _BMPINFOWINHEADER
+{
+    unsigned int   winSize;         /* 4 bytes */
+    long           winWidth;        /* 4 bytes */
+    long           winHeight;       /* 4 bytes */
+    unsigned short winColorPlanes;  /* 2 bytes */
+    unsigned short winBitsPerPixel; /* 2 bytes */
+    unsigned int   winCompression;  /* 4 bytes */
+    unsigned int   winImgSize;      /* 4 bytes */
+    long           winXPixPerMeter; /* 4 bytes */
+    long           winYPixPerMeter; /* 4 bytes */
+    unsigned long  winColorPalette; /* 4 bytes */
+    unsigned long  winColorUsed;    /* 4 bytes */
 
-/*
- * Bitmap core header (OS/2)
- */
-typedef struct tagBITMAPCOREHEADER {
-    unsigned int   bcSize;      /* 4 bytes */
-    short          bcWidth;     /* 2 bytes */
-    short          bcHeight;    /* 2 bytes */
-    unsigned short bcPlanes;    /* 2 bytes */
-    unsigned short bcBitCount;  /* 2 bytes */
-} BITMAPCOREHEADER;
+} BMPINFOWINHEADER;
 
 
-BITMAPFILEHEADER *ReadBMFileHeader(FILE *fp);
-BITMAPINFOHEADER *ReadBMInfoHeader(FILE *fp);
-BITMAPCOREHEADER *ReadBMCoreHeader(FILE *fp);
-
-int SizeOfInformationHeader(FILE *fp);
 
 #endif
