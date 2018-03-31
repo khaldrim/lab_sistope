@@ -10,7 +10,9 @@ BMPINFOWINHEADER *ReadBMPWinInfoHeader(FILE *fp, BMPINFOWINHEADER *header);
 
 FILE* readImageHeader(int img_num, FILE* fp,BMPFILEHEADER *bmpfh, BMPINFOOSHEADER *bmpOsIF, BMPINFOWINHEADER *bmpWinIH);
 void mainMenu(int cflag, int uflag, int nflag, int bflag);
-void readPixelData(FILE *fp, int width, int height);
+char* readPixelData(FILE *fp, unsigned char *data,int width, int height, int offset);
+char* scaleGreyData(int uflag, unsigned char *data, unsigned char *binary_data, int width, int height);
+//void writeBinaryImageWin(unsigned char *binary_data, BMPFILEHEADER *bmpfh, BMPINFOWINHEADER *bmpWinIH);
 
 unsigned short ReadLE2(FILE *fp);
 unsigned int ReadLE4(FILE *fp);

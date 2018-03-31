@@ -37,8 +37,8 @@ BMPFILEHEADER *ReadBMPFileHeader(FILE *fp, BMPFILEHEADER  *header)
 
     strcpy(header->fileType, filetype);
     header->filesize   = filesize;
-    header->reserverd1 = reserved1;
-    header->reserverd2 = reserved2;
+    header->reserved1 = reserved1;
+    header->reserved2 = reserved2;
     header->offBits    = offset;
 
     return header;
@@ -212,31 +212,117 @@ unsigned int ReadLE4(FILE *fp)
  * Output     : 
  * Description: 
  */
-void readPixelData(FILE *fp, int width, int height)
+char* readPixelData(FILE *fp, unsigned char *data,int width, int height, int offset)
 {
-    unsigned char *data = (char*)calloc((3*width*height),sizeof(char));
-    fread(data, sizeof(unsigned char), (3*width*height), fp);
-
-    printf("Size: %i\n", (width*height));
+    int size = width*height;
+    fseek(fp, offset, SEEK_SET); 
+    fread(data, sizeof(unsigned char), (3*size), fp);
 
     int i;
-    for(i = 0; i < (width*height); i+= 3)
+    for(i = 0; i < (size); i+= 3)
     {
+        /* Intercambio BGR a RGB, debido a que asi lo almacena la imagen windows.*/
+
         unsigned char tmp = data[i];
         data[i] = data[i+2];
         data[i+2] = tmp;
 
-        printf("R: %i G: %i B: %i.\n", data[i], data[i+1], data[i+2]);
+        //printf("N_%i R: %i G: %i B: %i.\n", i, data[i], data[i+1], data[i+2]);
     }
-    
-    /*
-    for (i = 2; i >= 0; i--) {
-        result = (result << 8) | (unsigned int) buf[i];
-    }*/
 
-    //printf("Pixel: %i %i %i .\n", buf[0], buf[1], buf[2]);
+    return data;
 }
 
+/*
+ * Input      : 
+ * Output     : 
+ * Description: 
+ */
+char* scaleGreyData(int uflag, unsigned char *data, unsigned char *binary_data, int width, int height)
+{
+    int size = (width*height);
+    int i, j = 0;
+
+    for(i=0;i<size;i+=3)
+    {
+        float scale = (((int)data[i])*0.3) + (((int)data[i+1])*0.59) + (((int)data[i+2])*0.11);
+        if(scale > uflag)
+        {
+            binary_data[j] = 0;
+        }
+        else
+        {
+            binary_data[j] = 1;
+        }
+
+        //printf("N_%i Scale: %f \n R: |%i|%f| B: |%i|%f| G: |%i|%f|\n", i,scale, data[i],(data[i]*0.3), data[i+1],(data[i+1]*0.59), data[i+2],(data[i+2]*0.11));
+        j++;
+    }
+
+    return binary_data;
+}
+
+/*
+ * Input      : 
+ * Output     : 
+ * Description: 
+ */
+
+
+void writeBinaryImageWin(int img_count, unsigned char *binary_data, BMPFILEHEADER *bmpfh, BMPINFOWINHEADER *bmpWinIH)
+{   
+    /* Primero escribir el archivo de cabecera, luego la informacion de cabezera y despues los pixeles binarizados. 
+     * Cabe recordar que cada imagen tiene propiedades diferentes. Por lo que puede ir variando el headersize por ej.
+     */
+
+    FILE *fp = NULL;
+    char fileNumber[5];
+    char fileName[30] = "imagenes/resultado_imagen_";
+
+    sprintf(fileNumber, "%d", img_count);
+    strcat(fileName, fileNumber);
+    strcat(fileName, ".bmp");
+
+    if((fp=fopen(fileName, "wb")) == NULL)
+    {
+        printf("No se logro abrir el archivo: %s.\n", fileName);
+        abort();   
+    }
+
+    /* File Header */
+
+    /* fileType */
+    fwrite();
+
+    /* filesize */
+    fwrite();
+
+    /* reserved1  */
+    fwrite();
+
+    /* reserved2 */
+    fwrite();
+
+    /* offBits */
+    fwrite();
+    
+    /* Info Header of Os or Win */
+    if(bmpfh->headersize == 12)
+    {
+
+    }
+    else if(bmpfh->headersize == 40)
+    {
+
+    }
+    else
+    {
+
+    }
+
+    /* Write Pixel Data from binary_data */
+    fwrite();
+}
 
 
 /*
@@ -253,7 +339,7 @@ FILE* readImageHeader(int img_num, FILE *fp,BMPFILEHEADER *bmpfh, BMPINFOOSHEADE
     strcat(fileName, fileNumber);
     strcat(fileName, ".bmp");
 
-    if((fp = fopen(fileName,"r")) == NULL)
+    if((fp = fopen(fileName,"rb")) == NULL)
     {
         printf("No se logro abrir el archivo: %s.\n", fileName);
         abort();
@@ -335,10 +421,12 @@ void mainMenu(int cflag, int uflag, int nflag, int bflag)
     while(cvalue > 0)
     {
         FILE *fp = NULL;
+        unsigned char *data = NULL;
+        unsigned char *binary_data = NULL;
         BMPFILEHEADER    *bmpFileHeader    = NULL;
         BMPINFOOSHEADER  *bmpOsInfoHeader  = NULL;
         BMPINFOWINHEADER *bmpWinInfoHeader = NULL;
-
+        
         bmpFileHeader    = (BMPFILEHEADER *) malloc(sizeof(BMPFILEHEADER));
         bmpOsInfoHeader  = (BMPINFOOSHEADER *) malloc(sizeof(BMPINFOOSHEADER));
         bmpWinInfoHeader = (BMPINFOWINHEADER*) malloc(sizeof(BMPINFOWINHEADER));
@@ -347,8 +435,40 @@ void mainMenu(int cflag, int uflag, int nflag, int bflag)
         
         if(bmpFileHeader->headersize == 40)
         {   
+            /* La variable data contiene los valores RGB en un arreglo, binary_data contiene 0 o 1 dependiendo del umbral. */
+    
+            unsigned char *data = (char*)calloc((3*bmpWinInfoHeader->winImgSize),sizeof(char));
+            unsigned char *binary_data = (char*)calloc(bmpWinInfoHeader->winImgSize, sizeof(char));
             
-            readPixelData(fp,bmpWinInfoHeader->winWidth, bmpWinInfoHeader->winHeight);
+            data = readPixelData(fp,data,bmpWinInfoHeader->winWidth, bmpWinInfoHeader->winHeight, bmpFileHeader->offBits);
+            binary_data = scaleGreyData(uflag, data, binary_data, bmpWinInfoHeader->winWidth, bmpWinInfoHeader->winHeight);
+            
+            
+
+                /* Codigo para mostrar contenido de binary_data 
+            int i, j = 0;
+            for(i=0; i<bmpWinInfoHeader->winImgSize; i++)
+            {
+                if(j == 200)
+                {
+                    j = 0;
+                    printf("\n");
+                }
+                else
+                {
+                    printf("%i", binary_data[i]);
+                    j++;
+                }
+            }
+            printf("\n");
+            */
+        }
+        else if()
+        {
+            
+        }
+        else
+        {
             
         }
 
@@ -356,6 +476,8 @@ void mainMenu(int cflag, int uflag, int nflag, int bflag)
         i++;
 
         fclose(fp);
+        free(data);
+        free(binary_data);
         free(bmpFileHeader);
         free(bmpOsInfoHeader);
         free(bmpWinInfoHeader);

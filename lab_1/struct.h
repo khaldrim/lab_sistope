@@ -10,8 +10,8 @@ typedef struct _BMPFILEHEADER
 {
     char           fileType[3]; /* 2 bytes + null char */
     unsigned int   filesize;    /* 4 bytes */
-    unsigned short reserverd1;  /* 2 bytes */
-    unsigned short reserverd2;  /* 2 bytes */
+    unsigned short reserved1;   /* 2 bytes */
+    unsigned short reserved2;  /* 2 bytes */
     unsigned long  offBits;     /* 4 bytes */
     unsigned int   headersize;  /* 12 or 40 */
 
