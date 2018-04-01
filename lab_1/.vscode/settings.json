@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "encabezados.h": "c",
+        "string.h": "c",
+        "stdio.h": "c"
+    }
+}

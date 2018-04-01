@@ -2,7 +2,7 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "funciones.h"
+#include "encabezados.h"
 
 int main(int argc, char** argv)
 {
