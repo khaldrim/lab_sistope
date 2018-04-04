@@ -40,27 +40,40 @@ char* readPixelData(FILE *fp, unsigned char *data,int width, int height, int off
  * Output     : 
  * Description: 
  */
-char* scaleGreyData(int uflag, unsigned char *data, unsigned char *binary_data, int size)
+int* binaryData(int uflag, unsigned char **data, BMPINFOWINHEADER *bmpIH)
 {
-    int i, j = 0;
+    int i, j,totalSize, scale;
+    int k=0;
+    int* binaryData;
 
-    for(i=0;i<size;i+=3)
+    totalSize = bmpIH->winHeight * bmpIH->winWidth;
+    binaryData = (int*)malloc(sizeof(int) *totalSize);
+
+    if(binaryData == NULL)
     {
-        float scale = (((int)data[i+2])*0.3) + (((int)data[i+1])*0.59) + (((int)data[i])*0.11);
-        if(scale > uflag)
-        {
-            binary_data[j] = 0;
-        }
-        else
-        {
-            binary_data[j] = 1;
-        }
-
-        //printf("N_%i Scale: %f \n R: |%i|%f| B: |%i|%f| G: |%i|%f|\n", i,scale, data[i],(data[i]*0.3), data[i+1],(data[i+1]*0.59), data[i+2],(data[i+2]*0.11));
-        j++;
+        printf("No se pudo asignar memoria para el arreglo binario de pixeles.\n");
+        return NULL;
     }
 
-    return binary_data;
+    for(i=0; i<bmpIH->winHeight; i++)
+    {
+        for(j=0; j < bmpIH->winWidth; j++)
+        {
+            scale = (((int)data[i][j])*0.3) + (((int)data[i][j+1])*0.59) + (((int)data[i][j+2])*0.11);
+            if(scale>uflag)
+            {
+                binaryData[k] = 1;
+            }
+            else
+            {
+                binaryData[k] = 0;
+            }
+
+            k++;
+        }
+    }
+
+    return binaryData;
 }
 
 /*
@@ -85,14 +98,16 @@ void mainMenu(int cflag, int uflag, int nflag, int bflag)
     
     while(cvalue > 0)
     {
-        FILE *fp = NULL;
-        unsigned char *data = NULL;
-        unsigned char *binary_data = NULL;
+        FILE *fp                           = NULL;
+        unsigned char **data               = NULL;
+        int           *binData             = NULL;
         BMPFILEHEADER    *bmpFileHeader    = NULL;
         BMPINFOOSHEADER  *bmpOsInfoHeader  = NULL;
         BMPINFOWINHEADER *bmpWinInfoHeader = NULL;
-        
-        bmpFileHeader    = (BMPFILEHEADER *) malloc(sizeof(BMPFILEHEADER));
+        RGB *palette                       = NULL;
+        RGB *pixel                         = NULL;
+
+        bmpFileHeader    = (BMPFILEHEADER *)   malloc(sizeof(BMPFILEHEADER));
         bmpOsInfoHeader  = (BMPINFOOSHEADER *) malloc(sizeof(BMPINFOOSHEADER));
         bmpWinInfoHeader = (BMPINFOWINHEADER*) malloc(sizeof(BMPINFOWINHEADER));
         
@@ -100,26 +115,23 @@ void mainMenu(int cflag, int uflag, int nflag, int bflag)
         
         if(bmpFileHeader->headersize == 40)
         {   
-            int imgSize = (bmpWinInfoHeader->winHeight * bmpWinInfoHeader->winWidth * bmpWinInfoHeader->winBitsPerPixel) / 8;
-            printf("\nThe size of the image is: %i\n.",imgSize);
             
-            if((data = (char*)malloc(sizeof(char)*imgSize)) == NULL)
-            {
-                printf("No hay memoria para alojar los datos de la imagen.\n");
-                abort();
-            }
+            data       = readImageData(fp, bmpWinInfoHeader, bmpFileHeader, palette, pixel);
+            binData    = binaryData(uflag, data, bmpWinInfoHeader);
+            writeFile(imgCount,binData, bmpWinInfoHeader);
 
-            fseek(fp, bmpFileHeader->offBits, SEEK_SET);
-            fread(data, imgSize, 1, fp);
-            writeData(imgCount,data, imgSize, bmpFileHeader, bmpWinInfoHeader);
+            //writeData(uflag, imgCount,data, imgSize, bmpFileHeader, bmpWinInfoHeader, bmpOsInfoHeader);
+
+            /* Luego, si bflag = 1, se procede a almacenar el resultado de writeData, 
+             * para despues mostrar por pantalla cuales imagenes fueron o no 'nearly black'
+             */
         }
 
         cvalue--;
         imgCount++;
 
         fclose(fp);
-        free(data);
-        free(binary_data);
+        //free(data);
         free(bmpFileHeader);
         free(bmpOsInfoHeader);
         free(bmpWinInfoHeader);
@@ -127,52 +139,116 @@ void mainMenu(int cflag, int uflag, int nflag, int bflag)
 }
 
 
-void writeData(int imgCount, unsigned char *data, int imgSize, BMPFILEHEADER *bmpfh, BMPINFOWINHEADER *bmpWinIH)
+unsigned char** createBuffer(int width, int height)
 {
+    unsigned char** data = NULL;
+    int padding = 0;
+    int totalWidthSize = 0;
+    int i;
+
+    padding = (4 - (width * 3) % 4) % 4;
+    totalWidthSize = padding + (width * 3);
+
+    data = (unsigned char**)malloc(sizeof(unsigned char*) * totalWidthSize);
+
+    for(i=0;i<width;i++)
+    {
+        data[i] = (unsigned char*)malloc(sizeof(unsigned char) * height);
+    }
+
+    if(data == NULL)
+        return NULL;
+    else
+        return data;
+}
+
+unsigned char** readImageData(FILE *fp, BMPINFOWINHEADER *bmpIH, BMPFILEHEADER *bmpFH, RGB *palette, RGB *pixel)
+{
+    unsigned char **data = NULL;
+    int i, j, pad;
+
+    //quizas este if este demas
+    if(bmpIH->winColorPalette > 0)
+    {
+        palette = (RGB*)malloc(sizeof(RGB) * bmpIH->winColorPalette);
+        if(palette == NULL)
+            return NULL;
+    }
+
+    data = createBuffer(bmpIH->winWidth, bmpIH->winHeight);
+
+    if(data != NULL)
+    {
+        pixel = (RGB*)malloc(sizeof(RGB));
+        for(j=0;j<bmpIH->winHeight;j++)
+        {
+            printf("------ ROW %i --------\n", j);
+            pad = 0;
+            for(i=0;i<bmpIH->winWidth;i++)
+            {
+                if(fread(pixel, 1, sizeof(RGB),fp) != sizeof(RGB))
+                {
+                    printf("Error leyendo los pixeles.\n");
+                    abort();
+                }
+
+                data[j][i]   = pixel->blue;
+                data[j][i+1] = pixel->green;
+                data[j][i+2] = pixel->red;
+
+                pad += sizeof(RGB);
+                printf("Pixel %d: %3d %3d %3d\n", i, pixel->red, pixel->green, pixel->blue);
+            }
+
+            if(pad % 4 != 0)
+            {
+                pad = 4 - (pad%4);
+                printf("Padding: %d bytes\n", pad);
+                fread(pixel, pad, 1, fp);
+
+                data[j][i] = pad;
+            }
+        }
+
+        return data;
+    }
+    else
+    {
+        printf("No se pudo asignar memoria para leer los datos de la imagen.\n");
+        return NULL;
+    }
+
+
+}
+
+void writeFile(int imgCount,int *binaryData, BMPINFOWINHEADER *bmpIH)
+{
+    int i,j;
     FILE *fp = NULL;
     char fileNumber[5];
     char fileName[30] = "imagenes/resultado_imagen_";
+    char value[1] = "";
 
     sprintf(fileNumber, "%d", imgCount);
     strcat(fileName, fileNumber);
-    strcat(fileName, ".bmp");
+    strcat(fileName, ".txt");
 
-    if((fp=fopen(fileName, "wb")) == NULL)
+    if((fp=fopen(fileName, "w")) == NULL)
     {
         printf("No se logro abrir el archivo: %s.\n", fileName);
         abort();   
     }
 
-    /* File Header */
-    fwrite(&bmpfh->fileType, 2, 1, fp);  /* fileType */
-    fwrite(&bmpfh->fileSize, 4, 1, fp);  /* filesize */
-    fwrite(&bmpfh->reserved1, 2, 1, fp); /* reserved1  */
-    fwrite(&bmpfh->reserved2, 2, 1, fp); /* reserved2 */
-    fwrite(&bmpfh->offBits, 4, 1, fp);   /* offBits */
-
-    fwrite(&bmpWinIH->winSize, 4, 1, fp);         /* Size */
-    fwrite(&bmpWinIH->winWidth, 4, 1, fp);        /* Width */
-    fwrite(&bmpWinIH->winHeight, 4, 1, fp);       /* Height */
-    fwrite(&bmpWinIH->winColorPlanes, 2, 1, fp);  /* ColorPlanes */
-    fwrite(&bmpWinIH->winBitsPerPixel, 2, 1, fp); /* BitsPerPixel */
-    fwrite(&bmpWinIH->winCompression, 4, 1, fp);  /* Compression */
-    fwrite(&bmpWinIH->winImgSize, 4, 1, fp);      /* Image Size */
-    fwrite(&bmpWinIH->winXPixPerMeter, 4, 1, fp); /* XPixPerMeter */
-    fwrite(&bmpWinIH->winYPixPerMeter, 4, 1, fp); /* YPixPerMeter */
-    fwrite(&bmpWinIH->winColorPalette, 4, 1, fp); /* ColorPalette */
-    fwrite(&bmpWinIH->winColorUsed, 4, 1, fp);    /* ColorUsed */
-
-    printf("OK!\n");
-    int i;
-    for(i=0; i < imgSize; i++)
+    for(j=0; j<bmpIH->winHeight; j++)
     {
-        fwrite(&data[i], sizeof(unsigned char), 1, fp);
-    }
-}
+        for(i=0; i<bmpIH->winWidth; i++)
+        {
+            sprintf(value, "%d", binaryData[i]);
+            fwrite(&value, sizeof(unsigned char), 1,fp);
+        }
 
-void printData(unsigned char *data, int imgSize)
-{
-    int i;
-    for(i=0; i < imgSize; i++)
-        printf("B:%i G:%i R:%i\n", data[i], data[i+1], data[i+2]);
+        fwrite("\n", sizeof(char), 1,fp);
+        
+    }
+
 }

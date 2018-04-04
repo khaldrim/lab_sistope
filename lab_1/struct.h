@@ -49,6 +49,11 @@ typedef struct _BMPINFOWINHEADER
 
 } BMPINFOWINHEADER;
 
-
+typedef struct _RGB
+{
+    unsigned char blue;
+    unsigned char green;
+    unsigned char red;
+} RGB;
 
 #endif

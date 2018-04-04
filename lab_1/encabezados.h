@@ -7,16 +7,15 @@ BMPFILEHEADER *ReadBMPFileHeader(FILE *fp, BMPFILEHEADER  *header);
 int SizeOfInformationHeader(FILE *fp);
 BMPINFOOSHEADER *ReadBMPOSInfoHeader(FILE *fp, BMPINFOOSHEADER *header);
 BMPINFOWINHEADER *ReadBMPWinInfoHeader(FILE *fp, BMPINFOWINHEADER *header);
-
 FILE* readImageHeader(int img_num, FILE* fp,BMPFILEHEADER *bmpfh, BMPINFOOSHEADER *bmpOsIF, BMPINFOWINHEADER *bmpWinIH);
 void mainMenu(int cflag, int uflag, int nflag, int bflag);
 char* readPixelData(FILE *fp, unsigned char *data,int width, int height, int offset);
-char* scaleGreyData(int uflag, unsigned char *data, unsigned char *binary_data, int size);
-//void writeBinaryImageWin(unsigned char *binary_data, BMPFILEHEADER *bmpfh, BMPINFOWINHEADER *bmpWinIH);
-
+int* binaryData(int uflag, unsigned char **data, BMPINFOWINHEADER *bmpIH);
 unsigned short ReadLE2(FILE *fp);
 unsigned int ReadLE4(FILE *fp);
-
 void printData(unsigned char *data, int imgSize);
-void writeData(int imgCount, unsigned char *data, int imgSize, BMPFILEHEADER *bmpfh, BMPINFOWINHEADER *bmpWinIH);
+void writeData(int uflag, int imgCount, unsigned char *data, int imgSize, BMPFILEHEADER *bmpfh, BMPINFOWINHEADER *bmpWinIH, BMPINFOOSHEADER *bmpOsIH);
+unsigned char** createBuffer(int width, int height);
+unsigned char** readImageData(FILE *fp, BMPINFOWINHEADER *bmpIH, BMPFILEHEADER *bmpFH, RGB *palette, RGB *pixel);
+
 #endif
