@@ -14,7 +14,9 @@ int* binaryData(int uflag, unsigned char **data, BMPINFOWINHEADER *bmpIH);
 unsigned short ReadLE2(FILE *fp);
 unsigned int ReadLE4(FILE *fp);
 void printData(unsigned char *data, int imgSize);
-void writeData(int uflag, int imgCount, unsigned char *data, int imgSize, BMPFILEHEADER *bmpfh, BMPINFOWINHEADER *bmpWinIH, BMPINFOOSHEADER *bmpOsIH);
+//void writeFile(int imgCount,int *binaryData, BMPINFOWINHEADER *bmpIH, BMPFILEHEADER *bmpFH);
+void writeFile(int imgCount,int *binaryData, BMPINFOWINHEADER *bmpIH, BMPFILEHEADER *bmpFH);
+
 unsigned char** createBuffer(int width, int height);
 unsigned char** readImageData(FILE *fp, BMPINFOWINHEADER *bmpIH, BMPFILEHEADER *bmpFH, RGB *palette, RGB *pixel);
 

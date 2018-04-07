@@ -239,14 +239,14 @@ FILE* readImageHeader(int imgCount, FILE *fp,BMPFILEHEADER *bmpfh, BMPINFOOSHEAD
     {
         bmpOSIH = ReadBMPOSInfoHeader(fp, bmpOSIH);
     }
-    else if(bmpfh->headersize == 40)
+    else if(bmpfh->headersize == 40 || bmpfh->headersize == 124)
     {
         bmpWinIH = ReadBMPWinInfoHeader(fp, bmpWinIH);
     }
     else
     {
-        printf("Bitmap no soportado.\n");
-        abort();
+        printf("%i Bitmap no soportado.\n", bmpfh->headersize);
+        exit(1);
     }
 
 
@@ -262,7 +262,7 @@ FILE* readImageHeader(int imgCount, FILE *fp,BMPFILEHEADER *bmpfh, BMPINFOOSHEAD
         printf("Bits per Pixel     = %d bits/pixel\n", bmpOSIH->osBitsPerPixel);
     } 
     
-    if (bmpfh->headersize == 40) 
+    if (bmpfh->headersize == 40 || bmpfh->headersize == 124) 
     {
         printf("Info header size   = %d bytes\n", bmpWinIH->winSize);
         printf("Width              = %ld pixels\n", bmpWinIH->winWidth);

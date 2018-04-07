@@ -13,7 +13,7 @@ typedef struct _BMPFILEHEADER
     unsigned short reserved1;   /* 2 bytes */
     unsigned short reserved2;   /* 2 bytes */
     unsigned long  offBits;     /* 4 bytes */
-    unsigned int   headersize;  /* 12 or 40 */
+    unsigned int   headersize;  /* 12 or 40 or 124*/
 
 } BMPFILEHEADER;
 
@@ -25,7 +25,7 @@ typedef struct _BMPINFOOSHEADER
     unsigned int   osSize;         /* 4 bytes */
     short          osWidth;        /* 2 bytes */
     short          osHeight;       /* 2 bytes */
-    unsigned short osColorPlanes;  /* 2 bytes */
+  CIEXYZTRIPLE  unsigned short osColorPlanes;  /* 2 bytes */
     unsigned short osBitsPerPixel; /* 2 bytes */
 
 } BMPINFOOSHEADER;
@@ -54,6 +54,7 @@ typedef struct _RGB
     unsigned char blue;
     unsigned char green;
     unsigned char red;
+    unsigned char alpha;
 } RGB;
 
 #endif
