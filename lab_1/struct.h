@@ -1,60 +1,73 @@
 #include <stdio.h>
+#include <stdint.h>
 
 #ifndef _STRUCT_H_
 #define _STRUCT_H_
 
-/*
- * Bitmap file header.
- */
-typedef struct _BMPFILEHEADER 
+
+typedef unsigned short WORD; /* 2 bytes */
+typedef unsigned int DWORD;  /* 4 bytes */
+typedef unsigned long long LONG; /* 8 bytes */
+
+/* Bitmap file header struct */
+typedef struct  __attribute__((__packed__))
 {
-    char           fileType[3]; /* 2 bytes */
-    unsigned int   fileSize;    /* 4 bytes */
-    unsigned short reserved1;   /* 2 bytes */
-    unsigned short reserved2;   /* 2 bytes */
-    unsigned long  offBits;     /* 4 bytes */
-    unsigned int   headersize;  /* 12 or 40 or 124*/
+    unsigned char type[3]; /* 2 bytes + null char */
+    DWORD size;
+    WORD reserved1;
+    WORD reserved2;
+    DWORD offbits;
 
-} BMPFILEHEADER;
+} BITMAPFILEHEADER;
 
-/*
- * Bitmap infor header (OS/2)
- */
-typedef struct _BMPINFOOSHEADER
+/* Bitmap info header struct (Windows) */
+typedef struct  __attribute__((__packed__))
 {
-    unsigned int   osSize;         /* 4 bytes */
-    short          osWidth;        /* 2 bytes */
-    short          osHeight;       /* 2 bytes */
-  CIEXYZTRIPLE  unsigned short osColorPlanes;  /* 2 bytes */
-    unsigned short osBitsPerPixel; /* 2 bytes */
+    DWORD size;
+    LONG width;
+    LONG height;
+    WORD planes;
+    WORD bitPerPixel;
+    DWORD compression;
+    DWORD sizeImage;
+    LONG xPelsPerMeter;
+    LONG yPelsperMeter;
+    DWORD used;
+    DWORD important;
+    DWORD redMask;
+    DWORD greenMask;
+    DWORD blueMask;
+    DWORD alphaMask;
+    DWORD csType;
+    DWORD ciexyzXRed;
+    DWORD ciexyzYRed;
+    DWORD ciexyzZRed;
+    DWORD ciexyzXGreen;
+    DWORD ciexyzYGreen;
+    DWORD ciexyzZGreen;
+    DWORD ciexyzXBlue;
+    DWORD ciexyzYBlue;
+    DWORD ciexyzZBlue;
+    DWORD gammaRed;
+    DWORD gammaGreen;
+    DWORD gammaBlue;
+    DWORD intent;
+    DWORD profileData;
+    DWORD profileSize;
+    DWORD reserved; 
 
-} BMPINFOOSHEADER;
+} BITMAPINFOHEADER;
 
-/*
- * Bitmap info header (Windows)
- */
-typedef struct _BMPINFOWINHEADER
-{
-    unsigned int   winSize;         /* 4 bytes */
-    long           winWidth;        /* 4 bytes */
-    long           winHeight;       /* 4 bytes */
-    unsigned short winColorPlanes;  /* 2 bytes */
-    unsigned short winBitsPerPixel; /* 2 bytes */
-    unsigned int   winCompression;  /* 4 bytes */
-    unsigned int   winImgSize;      /* 4 bytes */
-    long           winXPixPerMeter; /* 4 bytes */
-    long           winYPixPerMeter; /* 4 bytes */
-    unsigned long  winColorPalette; /* 4 bytes */
-    unsigned long  winColorUsed;    /* 4 bytes */
 
-} BMPINFOWINHEADER;
 
-typedef struct _RGB
+/* RGB struct */
+typedef struct __attribute__((__packed__))
 {
     unsigned char blue;
     unsigned char green;
-    unsigned char red;
+    unsigned char red; 
     unsigned char alpha;
-} RGB;
+
+}RGB;
 
 #endif
