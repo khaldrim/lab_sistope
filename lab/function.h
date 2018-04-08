@@ -14,9 +14,9 @@ unsigned int ReadLE36(FILE *fp);
 /* function.c file */
 void mainMenu(int cflag, int uflag, int nflag, int bflag);
 FILE* readImageHeader(int imgCount, FILE* fp, BITMAPFILEHEADER *bmpFileHeader, BITMAPINFOHEADER *bmpInfoHeader);
-unsigned char* readImageData(FILE *fp, BITMAPFILEHEADER *bmpFileHeader, BITMAPINFOHEADER *bmpInfoHeader);
-unsigned char* createBuffer(int width, int height, int bitPerPixel);
-unsigned char* binaryImageData(int uflag, unsigned char* data, BITMAPFILEHEADER *bmpFileHeader,BITMAPINFOHEADER *bmpInfoHeader);
-void writeBinaryImage(unsigned char* binaryData, int imgCount, BITMAPFILEHEADER *bmpFileHeader, BITMAPINFOHEADER *bmpInfoHeader,unsigned char *data);
+unsigned char** readImageData(FILE *fp, BITMAPFILEHEADER *bmpFileHeader, BITMAPINFOHEADER *bmpInfoHeader);
+unsigned char** createBuffer(int width, int height, int bitPerPixel);
+unsigned int* binaryImageData(int uflag, unsigned char** data, BITMAPFILEHEADER *bmpFileHeader,BITMAPINFOHEADER *bmpInfoHeader);
+void writeBinaryImage(unsigned int* binaryData, int imgCount, BITMAPFILEHEADER *bmpFileHeader, BITMAPINFOHEADER *bmpInfoHeader);
 
 #endif

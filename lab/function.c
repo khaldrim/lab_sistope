@@ -14,8 +14,8 @@ void mainMenu(int cflag, int uflag, int nflag, int bflag)
     while(cValue > 0)
     {
         FILE *fp = NULL;
-        unsigned char *data = NULL;
-        unsigned char *binaryData = NULL;
+        unsigned char **data = NULL;
+        unsigned int *binaryData = NULL;
         BITMAPFILEHEADER *bmpFileHeader = NULL;
         BITMAPINFOHEADER *bmpInfoHeader = NULL;
 
@@ -27,13 +27,14 @@ void mainMenu(int cflag, int uflag, int nflag, int bflag)
         printf("chaos\n");
         printf("Ok\n");
         data = readImageData(fp, bmpFileHeader, bmpInfoHeader);
+        fclose(fp);
+
         binaryData = binaryImageData(uflag, data, bmpFileHeader, bmpInfoHeader);
-        writeBinaryImage(binaryData, imgCount, bmpFileHeader,bmpInfoHeader,data);   
+        writeBinaryImage(binaryData, imgCount, bmpFileHeader,bmpInfoHeader);   
 
         cValue--;
         imgCount++;
 
-        fclose(fp);
         free(bmpFileHeader);
         free(bmpInfoHeader);
     }
@@ -106,9 +107,9 @@ FILE* readImageHeader(int imgCount, FILE* fp, BITMAPFILEHEADER *bmpFileHeader, B
     return fp;
 }
 
-unsigned char* readImageData(FILE *fp, BITMAPFILEHEADER *bmpFileHeader, BITMAPINFOHEADER *bmpInfoHeader)
+unsigned char** readImageData(FILE *fp, BITMAPFILEHEADER *bmpFileHeader, BITMAPINFOHEADER *bmpInfoHeader)
 {
-    unsigned char *data = NULL;
+    unsigned char **data = NULL;
     int rowSize, pixelArray;
     RGB *pixel;
 
@@ -119,23 +120,33 @@ unsigned char* readImageData(FILE *fp, BITMAPFILEHEADER *bmpFileHeader, BITMAPIN
 
     if(data != NULL)
     {
-        int i=0,pad=0;
+        int i, j,pad=0;
         pixel = (RGB*)malloc(sizeof(RGB));
         
         fseek(fp, bmpFileHeader->offbits, SEEK_SET);
 
-        while(i < pixelArray)
+        for(i=bmpInfoHeader->height-1;i>0;i--)
         {
-            fread(pixel, sizeof(RGB), 1, fp);
-            data[i] = pixel->blue;
-            data[i+1] = pixel->green;
-            data[i+2] = pixel->red;
-            data[i+3]   = pixel->alpha;
-            i+=sizeof(pixel);
+            for(j=0;j<bmpInfoHeader->width;j+=4)
+            {
+                fread(pixel, sizeof(RGB), 1, fp);
+                data[i][j] = pixel->blue;
+                data[i][j+1] = pixel->green;
+                data[i][j+2] = pixel->red;
+                data[i][j+3] = pixel->alpha;
+            }
         }
-
+        // while(i < pixelArray)
+        // {
+        //     fread(pixel, sizeof(RGB), 1, fp);
+        //     data[i] = pixel->blue;
+        //     data[i+1] = pixel->green;
+        //     data[i+2] = pixel->red;
+        //     data[i+3]   = pixel->alpha;
+        //     i+=sizeof(pixel);
+        // }
+        //fclose(fp);
         return data;
-        fclose(fp);
     }
     else
     {
@@ -145,10 +156,10 @@ unsigned char* readImageData(FILE *fp, BITMAPFILEHEADER *bmpFileHeader, BITMAPIN
 
 }
 
-unsigned char* createBuffer(int width, int height, int bitPerPixel)
+unsigned char** createBuffer(int width, int height, int bitPerPixel)
 {
-    unsigned char* data = NULL;
-    int rowSize, pixelArray;
+    unsigned char** data = NULL;
+    int rowSize, pixelArray, i;
 
     rowSize = (((bitPerPixel * width) + 31) / 32) * 4;
     printf("ROWSIZE: %d\n", rowSize);
@@ -156,7 +167,10 @@ unsigned char* createBuffer(int width, int height, int bitPerPixel)
     pixelArray = rowSize * height;
     printf("PIXELARRAY: %d\n", pixelArray);
 
-    data = (unsigned char*)malloc(sizeof(unsigned char) * pixelArray);
+    data = (unsigned char**)malloc(sizeof(unsigned char*) * height);
+    for(i=0; i< height; i++)
+        data[i] = (unsigned char*)malloc(sizeof(unsigned char) * rowSize);
+
 
     if(data == NULL)
     {
@@ -169,37 +183,50 @@ unsigned char* createBuffer(int width, int height, int bitPerPixel)
     }
 }
 
-unsigned char* binaryImageData(int uflag, unsigned char* data, BITMAPFILEHEADER *bmpFileHeader,BITMAPINFOHEADER *bmpInfoHeader)
+unsigned int* binaryImageData(int uflag, unsigned char** data, BITMAPFILEHEADER *bmpFileHeader,BITMAPINFOHEADER *bmpInfoHeader)
 {
-    unsigned char *binaryData;
-    int rowSize, pixelArray, i, k;
-    int scale;
+    unsigned int* binaryData = NULL;
+    int rowSize, pixelArray, i, j, k;
+    double scale;
 
     rowSize = (((bmpInfoHeader->bitPerPixel * bmpInfoHeader->width) + 31) / 32) * 4;
     pixelArray = rowSize * bmpInfoHeader->height;
 
-    binaryData = (unsigned char*)malloc(sizeof(unsigned char) * (bmpInfoHeader->height * bmpInfoHeader->width));
+    binaryData = (unsigned int*)malloc(sizeof(unsigned int) * (bmpInfoHeader->height * bmpInfoHeader->width));
 
     if(binaryData != NULL)
     {
         k = 0;
-        i = 0;
-        while(i < pixelArray)
+        
+        for(i=0;i<bmpInfoHeader->height;i++)
         {
-            scale = (((int)data[i+2])*0.3) + (((int)data[i+1])*0.59) + (((int)data[i])*0.11);
-            //printf("scale: %i , r: %i, b: %i, g: %i \n", scale, data[i+2], data[i+1], data[i+1]);
-            if(scale>uflag)
+            for(j=0;j<rowSize;j+=4)
             {
-                binaryData[k] = 1;
-            }
-            else
-            {
-                binaryData[k] = 0;
-            }
+                int red = data[i][j+2];
+                int green = data[i][j+1];
+                int blue = data[i][j];
 
-            i += 4;
-            k++;
+                printf("red: %i, green: %i, blue: %i\n", red, green, blue);
+                // memcpy((int*)&red, (unsigned char*)&data[i][j+2],2);
+                // memcpy((int*)&green, (unsigned char*)&data[i][j+1],2);
+                // memcpy((int*)&blue, (unsigned char*)&data[i][j],2);
+
+                scale = red*0.3 + green*0.59 + blue*0.11;
+
+                if(scale>uflag)
+                {
+                    binaryData[k] = 1;
+                }
+                else
+                {
+                    binaryData[k] = 0;
+                }
+
+                k++;
+            }
         }
+           
+        
 
         return binaryData;
     }
@@ -210,7 +237,7 @@ unsigned char* binaryImageData(int uflag, unsigned char* data, BITMAPFILEHEADER 
     }
 }
 
-void writeBinaryImage(unsigned char* binaryData, int imgCount, BITMAPFILEHEADER *bmpFileHeader, BITMAPINFOHEADER *bmpInfoHeader,unsigned char *data)
+void writeBinaryImage(unsigned int* binaryData, int imgCount, BITMAPFILEHEADER *bmpFileHeader, BITMAPINFOHEADER *bmpInfoHeader)
 {
     FILE *fp = NULL;
 
@@ -287,6 +314,7 @@ void writeBinaryImage(unsigned char* binaryData, int imgCount, BITMAPFILEHEADER 
     {
         for(j=0;j<bmpInfoHeader->width;j++)
         {
+            //printf("bin %i", binaryData[k]);
             if(binaryData[k] == 1)
             {
                 
@@ -294,7 +322,7 @@ void writeBinaryImage(unsigned char* binaryData, int imgCount, BITMAPFILEHEADER 
                 pixel->green = 255;
                 pixel->red = 255;
                 pixel->alpha = 255;
-                fwrite((RGB*)pixel, sizeof(RGB), 1, fp);
+                fwrite(pixel, sizeof(RGB), 1, fp);
             }
             else
             {
@@ -302,7 +330,7 @@ void writeBinaryImage(unsigned char* binaryData, int imgCount, BITMAPFILEHEADER 
                 pixel->green = 0;
                 pixel->red = 0;
                 pixel->alpha = 255;
-                fwrite((RGB*)pixel, sizeof(RGB), 1, fp);
+                fwrite(pixel, sizeof(RGB), 1, fp);
             }
 
             k++;

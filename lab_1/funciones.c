@@ -286,6 +286,8 @@ void writeFile(int imgCount,int *binaryData, BMPINFOWINHEADER *bmpIH, BMPFILEHEA
                 fwrite(&value, 1, 1, fp);
         }
 
+
     }
     free(pixel);
+    fclose(fp);
 }
