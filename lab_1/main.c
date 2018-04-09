@@ -74,7 +74,7 @@ int main(int argc, char** argv)
         }
     }
 
-    printf("cflag=%d, uflag=%d, nflag=%d, bflag=%d \n", cflag, uflag, nflag, bflag);
+    //printf("cflag=%d, uflag=%d, nflag=%d, bflag=%d \n", cflag, uflag, nflag, bflag);
     mainMenu(cflag, uflag, nflag, bflag);
 
     return 0;

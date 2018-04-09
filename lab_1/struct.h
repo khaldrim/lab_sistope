@@ -4,7 +4,6 @@
 #ifndef _STRUCT_H_
 #define _STRUCT_H_
 
-
 typedef unsigned short WORD; /* 2 bytes */
 typedef unsigned int DWORD;  /* 4 bytes */
 typedef unsigned long long LONG; /* 8 bytes */
@@ -68,6 +67,6 @@ typedef struct __attribute__((__packed__))
     unsigned char red; 
     unsigned char alpha;
 
-}RGB;
+} RGB;
 
 #endif
