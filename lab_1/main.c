@@ -4,14 +4,17 @@
 #include <unistd.h>
 #include "function.h"
 
+/*
+ * Descripcion: Permite ingresar parametros por consola, los cuales son los siguientes:
+ *                c -> Cantidad de imagenes.
+ *                u -> Umbral para binarizar la imagen.
+ *                n -> Umbral para clasificacion.
+ *                b -> Indica si se debe mostrar los resultados por pantalla al leer la imagen binarizada.
+ */
 int main(int argc, char** argv)
 {
     /*
-        Variables ingresadas por consola.
-            c -> Cantidad de imagenes.
-            u -> Umbral para binarizar la imagen.
-            n -> Umbral para clasificacion.
-            b -> Indica si se debe mostrar los resultados por pantalla al leer la imagen binarizada.
+       
     */
     int cflag = 0;
     int uflag = 0;
@@ -33,31 +36,29 @@ int main(int argc, char** argv)
         {
             case 'c':
                 sscanf(optarg,"%d", &cflag);
-                
-                /*
-                Anañir validaciones de parametros.
-
                 if(cflag <= 0)
                 {
-                    printf("(!) Valor de C menor o igual a 0.");
+                    printf("La bandera -c no puede tener un valor igual o menor a cero.\n");
+                    exit(1);
                 }
-                else
-                {
-                    printf("Valor de C: %d",c_value);
-                }
-                */
                 break;
             case 'u':
                 sscanf(optarg,"%d", &uflag);
+                if(uflag < 0 || uflag > 255)
+                {
+                    printf("La bandera -u no puede tener un valor menor a cero o mayor a 255.\n");
+                    exit(1);
+                }
                 break;
             case 'n':
                 sscanf(optarg,"%d", &nflag);
+                if(nflag <= 0 || nflag > 100)
+                {
+                    printf("La bandera -n no puede tener un valor menor o igual a cero o mayor a 100.\n");
+                    exit(1);
+                }
                 break;
             case 'b':
-                /* 
-                    bflag activo
-                    validar que no debe traer un argumento
-                */
                 bflag = 1;
                 break;
             case '?':

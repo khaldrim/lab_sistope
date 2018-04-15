@@ -5,9 +5,14 @@
 #include "function.h"
 
 /*
- * Input      : Puntero hacia el archivo bmp que se leera.
- * Output     : Puntero hacia la estructura BMPFILEHEADER que almacena la informacion de cabezera.
- * Description: Inicializa las variables 
+ * Descripcion: Funcion que permite leer la cabezera de archivo de la imagen bmp, primero se 
+ *              inicializan las variales, luego mediante 'fread' se leen los bytes del archivo
+ *              para luego asignar los resultados a la estructura 'BITMAPFILEHEADER'.
+ *              Durante la lectura, se apoya en la funcion 'ReadLE4' que permite pasar los bits
+ *              de 'Big-Endian' a 'Litle-Endian' dependiendo del tamaño de bytes leidos.
+ * 
+ * Entrada:     Puntero al archivo 'fp', Puntero a la estructura 'BITMAPFILEHEADER'
+ * Salida:      Puntero hacia la estructura 'BMPFILEHEADER'
  */
 BITMAPFILEHEADER *ReadBMPFileHeader(FILE *fp, BITMAPFILEHEADER  *header)
 {
@@ -33,9 +38,14 @@ BITMAPFILEHEADER *ReadBMPFileHeader(FILE *fp, BITMAPFILEHEADER  *header)
 }
 
 /*
- * Input      : 
- * Output     : 
- * Description: 
+ * Descripcion: Funcion que permite leer la cabezera de informacion de la imagen bmp, primero se 
+ *              inicializan las variales, luego mediante 'fread' se leen los bytes del archivo
+ *              para luego asignar los resultados a la estructura 'BITMAPINFOHEADER'.
+ *              Durante la lectura, se apoya en la funcion 'ReadLE4', 'ReadLE2' y 'ReadLE8' que 
+ *              permite pasar los bits de 'Big-Endian' a 'Litle-Endian' dependiendo del tamaño de bytes leidos.
+ * 
+ * Entrada:     Puntero al archivo 'fp', Puntero a la estructura 'BITMAPINFOHEADER'
+ * Salida:      Puntero hacia la estructura 'BMPINFOHEADER'
  */
 BITMAPINFOHEADER *ReadBMPInfoHeader(FILE *fp, BITMAPINFOHEADER *header)
 {
@@ -141,10 +151,12 @@ BITMAPINFOHEADER *ReadBMPInfoHeader(FILE *fp, BITMAPINFOHEADER *header)
     return header;
 }
 
-/*bitsPerPixel
- * Input      : 
- * Output     : 
- * Description: 
+/*
+ * Descripcion: Funcion que permite mover bits desde 'Big-Endian' a 'Litle-Endian',
+ *              de tamaño 2 bytes.
+ * 
+ * Entrada:     Puntero al archivo 'fp'
+ * Salida:      Resultado en 'unsigned short'
  */
 unsigned short ReadLE2(FILE *fp)
 {
@@ -161,9 +173,11 @@ unsigned short ReadLE2(FILE *fp)
 }
 
 /*
- * Input      : 
- * Output     : 
- * Description: 
+ * Descripcion: Funcion que permite mover bits desde 'Big-Endian' a 'Litle-Endian',
+ *              de tamaño 4 bytes.
+ * 
+ * Entrada:     Puntero al archivo 'fp'
+ * Salida:      Resultado en 'unsigned int'
  */
 unsigned int ReadLE4(FILE *fp)
 {
@@ -179,6 +193,13 @@ unsigned int ReadLE4(FILE *fp)
     return result;
 }
 
+/*
+ * Descripcion: Funcion que permite mover bits desde 'Big-Endian' a 'Litle-Endian',
+ *              de tamaño 8 bytes.
+ * 
+ * Entrada:     Puntero al archivo 'fp'
+ * Salida:      Resultado en 'unsigned int'
+ */
 unsigned int ReadLE8(FILE *fp)
 {
     unsigned char buf[8];
@@ -187,20 +208,6 @@ unsigned int ReadLE8(FILE *fp)
 
     fread(buf, 1, 8, fp);
     for (i = 7; i >= 0; i--) {
-        result = (result << 8) | (unsigned int) buf[i];
-    }
-
-    return result;
-}
-
-unsigned int ReadLE36(FILE *fp)
-{
-    unsigned char buf[36];
-    unsigned int result = 0;
-    int i;
-
-    fread(buf, 1, 36, fp);
-    for (i = 35; i >= 0; i--) {
         result = (result << 8) | (unsigned int) buf[i];
     }
 

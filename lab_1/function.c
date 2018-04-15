@@ -14,8 +14,11 @@
  *              archivo bmp, y la informacion de cabecera. Luego se llama a la funcion 'readImageData' para 
  *              leer los pixeles de la imagen. Luego se llama a la funcion 'binaryImageData' para generar un
  *              arreglo que contiene la binarizacion de cada pixel de la imagen, para luego escribir la imagen
- *              binarizada con la funcion 'writeBinaryImage'. El contador de imagenes (imgCount) aumenta, y 
+ *              binarizada con la funcion 'writeBinaryImage'. Despues, se llama a la funcion 'isNearlyBlack'
+ *              para determinar si la imagen es o no 'Nearly black'. El contador de imagenes (imgCount) aumenta, y 
  *              el contador de cantidad de imagenes (Cvalue) disminuye para terminar el ciclo.
+ *              Una vez terminado el ciclo se consulta si 'bflag' posee un valor 1 para imprimir por pantalla
+ *              los resultados de cada imagen.
  * 
  * Entrada: Parametros solicitados en el enunciado:
  *              cflag -> cantidad de imagenes.

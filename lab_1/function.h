@@ -9,7 +9,6 @@ BITMAPINFOHEADER *ReadBMPInfoHeader(FILE *fp, BITMAPINFOHEADER *header);
 unsigned short ReadLE2(FILE *fp);
 unsigned int ReadLE4(FILE *fp);
 unsigned int ReadLE8(FILE *fp);
-unsigned int ReadLE36(FILE *fp);
 
 /* function.c file */
 void mainMenu(int cflag, int uflag, int nflag, int bflag);

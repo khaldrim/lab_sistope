@@ -4,8 +4,8 @@
 #ifndef _STRUCT_H_
 #define _STRUCT_H_
 
-typedef unsigned short WORD; /* 2 bytes */
-typedef unsigned int DWORD;  /* 4 bytes */
+typedef unsigned short WORD;     /* 2 bytes */
+typedef unsigned int DWORD;      /* 4 bytes */
 typedef unsigned long long LONG; /* 8 bytes */
 
 /* Bitmap file header struct */
@@ -56,8 +56,6 @@ typedef struct  __attribute__((__packed__))
     DWORD reserved; 
 
 } BITMAPINFOHEADER;
-
-
 
 /* RGB struct */
 typedef struct __attribute__((__packed__))
