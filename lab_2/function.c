@@ -7,8 +7,8 @@
 #include "struct.h"
 #include "function.h"
 
-#define READ 0;  /* Index of the read end of a pipe */
-#define WRITE 1; /* Index of he write end of a pipe*/
+#define READ 0  /* Index of the read end of a pipe */
+#define WRITE 1 /* Index of he write end of a pipe*/
 
 /*
  * Descripcion: La funcion recibe los parametros ingresados al momento de ejecutar el programa por consola,
@@ -38,17 +38,19 @@ void mainMenu(int cflag, int uflag, int nflag, int bflag)
     /* Variables */
     int cValue, imgCount, status;
     FILE *fp = NULL;
-    unsigned char **data     = NULL;
-    unsigned int *binaryData = NULL;
-    unsigned int *grayData   = NULL;
+    //unsigned char **data     = NULL;
+    //unsigned int *binaryData = NULL;
+    //unsigned int *grayData   = NULL;
+
+    DATA *data = NULL;
     BITMAPFILEHEADER *bmpFileHeader = NULL;
     BITMAPINFOHEADER *bmpInfoHeader = NULL;
     int* imgPrintResult = NULL;
     int steps;
 
     /* Variables para crear pipe*/
-    pid_t pid;
-    int pipeGo[2], pipeBack[2];
+    pid_t pid, pid_hijo;
+    int pipeFileHeader[2], pipeInfoHeader[2], pipeData[2], pipeBinData[2], pipeGrayData[2], pipeNearlyBlack[2];
     
     imgPrintResult = (int*)malloc(sizeof(int)*cflag);
     if(imgPrintResult == NULL)
@@ -62,71 +64,141 @@ void mainMenu(int cflag, int uflag, int nflag, int bflag)
     status = 0;
     imgCount = 1;
     
-    /* Inicio el pipe para enviar informacion desde el padre al hijo 
-     * Inicio el pipe para recibir informacion desde el hijo al padre */
-    if(pipe(pipeGo) == -1 || pipe(pipeBack) == -1)
+    /* Inicio el pipeGo para enviar informacion desde el padre al hijo 
+     * Inicio el pipeReturn para recibir informacion desde el hijo al padre */
+    if(pipe(pipeFileHeader) == -1 || pipe(pipeInfoHeader) == -1 || pipe(pipeData) == -1 || pipe(pipeBinData) == -1 || pipe(pipeGrayData) == -1 || pipe(pipeNearlyBlack) == -1)
     {
-        printf("No se logro crear los pipes.\n");
+        printf("Algun pipe fallo.\n");
         exit(1);
     }
 
+    printf("PID Padre: %i\n", getpid());
     while(cValue > 0)
     {
         bmpFileHeader = (BITMAPFILEHEADER*)malloc(sizeof(BITMAPFILEHEADER));
         bmpInfoHeader = (BITMAPINFOHEADER*)malloc(sizeof(BITMAPINFOHEADER));
+        data = (DATA*)malloc(sizeof(DATA));
         
         while(steps < 5)
         {
             pid = fork();
             if(pid == 0) //Hijo
             {
+                printf("Etapa: %i | Hijo: %i\n", steps, getpid());
                 if(steps == 0) /* Lector de imagen */
                 {
-                    printf(" Hijo que lee la imagen pid: %i \n", pid);
-                    
+                    /* En la primera etapa el hijo envia informacion al padre */
+                    close(pipeFileHeader[READ]); 
+                    close(pipeInfoHeader[READ]); 
+                    close(pipeData[READ]); 
+
                     fp   = readImageHeader(imgCount, fp, bmpFileHeader, bmpInfoHeader); /* Se lee las cabeceras y los datos de la imagen */
-                    data = readImageData(fp, bmpFileHeader, bmpInfoHeader);
-                    exit(0);
+                    readImageData(fp, bmpFileHeader, bmpInfoHeader,data);
+                    
+                    printf("width 1er hijo: %llu\n", bmpInfoHeader->width);
+                    write(pipeFileHeader[WRITE], bmpFileHeader, sizeof(BITMAPFILEHEADER));
+                    write(pipeInfoHeader[WRITE], bmpInfoHeader, sizeof(BITMAPINFOHEADER));
+                    write(pipeData[WRITE],data, sizeof(DATA));
+                    
+                    
+                    close(pipeFileHeader[WRITE]);
+                    close(pipeInfoHeader[WRITE]);
+                    close(pipeData[WRITE]);
+
+                    printf("Que chucha -> data:%i data1:%i data2:%i\n", data->pixelData[1][2], data->pixelData[1][3], data->pixelData[1][4]);
                 }
                 else if(steps == 1) /* Conversor a gris */
                 {
-                    printf(" Hijo que convierte a gris \n");
-                    grayData = scaleGrayData(data, bmpInfoHeader);
-                    exit(0);
-                } 
+                    // close(pipeGrayData[READ]);
+                    // close(pipeData[WRITE]);
+
+                    // printf("hola?\n");
+                    printf("width en el 2do proceso: %llu\n", bmpInfoHeader->width);
+
+                    // read(pipeData[READ], data, sizeof(data));
+                    // close(pipeData[READ]);
+
+                    //printf("data:%i data1:%i data2:%i\n", data[1][2], data[1][3], data[1][4]);
+                    printf("hola?\n");
+                    printf("Que wea -> data:%i data1:%i data2:%i\n", data->pixelData[1][2], data->pixelData[1][3], data->pixelData[1][4]);
+                    printf("olo\n");
+                    data->grayData = scaleGrayData(data->pixelData, bmpInfoHeader);
+                    // write(pipeGrayData[WRITE], grayData, sizeof(grayData));
+                    
+                    // close(pipeGrayData[WRITE]);
+                }   
                 else if(steps == 2) /* Binarizador de imagen */
                 {
-                    printf(" Hijo que binariza \n");
-                    
-                    binaryData = binaryImageData(uflag, grayData, bmpInfoHeader); /* Se binarizan los datos obtenidos */
-                    exit(0);
+                    // close(pipeBinData[READ]);
+                    // printf("data:%i data1:%i data2:%i\n", data[1][2], data[1][3], data[1][4]);
+                    data->binaryData = binaryImageData(uflag, data->grayData, bmpInfoHeader); /* Se binarizan los datos obtenidos */
+                    // write(pipeBinData[WRITE], binaryData, sizeof(binaryData));
+                    // close(pipeBinData[WRITE]);
                 }
                 else if(steps == 3) /* Analista de propiedad */
                 {
-                    printf(" Hijo que analisa \n");
-                    
-                    imgPrintResult[imgCount-1] = isNearlyBlack(binaryData, nflag, bmpInfoHeader->width, bmpInfoHeader->height); /* Se decide si es nearly black */
-                    exit(0);
+                    // close(pipeNearlyBlack[READ]);   
+                    imgPrintResult[imgCount-1] = isNearlyBlack(data->binaryData, nflag, bmpInfoHeader->width, bmpInfoHeader->height); /* Se decide si es nearly black */
+                    // write(pipeNearlyBlack[WRITE], imgPrintResult, sizeof(imgPrintResult));
+                    // close(pipeNearlyBlack[WRITE]);
                 }
                 else /* Escribir resultado */
                 {
-                    printf(" Hijo que escribe \n");
-
-
-                    writeBinaryImage(binaryData, imgCount, bmpFileHeader,bmpInfoHeader); /* Se escribe la imagen */
-                    exit(0);
+                    writeBinaryImage(data->binaryData, imgCount, bmpFileHeader,bmpInfoHeader); /* Se escribe la imagen */
                 }
 
+                exit(0);
             }
             else //Padre
             {
-                int pid_hijo;
-                pid_hijo = wait(&status);
-                if(pid_hijo != pid)
+                wait(NULL); //esperamos al hijo
+                
+                printf("STEPS: %i\n",steps);
+                if(steps == 0)
                 {
-                    printf("Algo ha ocurrido al terminar el proceso hijo.\n");
-                    exit(1);
+                    close(pipeFileHeader[WRITE]); 
+                    close(pipeInfoHeader[WRITE]); 
+                    close(pipeData[WRITE]);
+
+                    read(pipeFileHeader[READ], bmpFileHeader, sizeof(BITMAPFILEHEADER));
+                    read(pipeInfoHeader[READ], bmpInfoHeader, sizeof(BITMAPINFOHEADER));
+                    read(pipeData[READ], data, sizeof(DATA));
+
+                    printf("width en el paire: %llu\n", bmpInfoHeader->width);
+                    printf("11data:%i data1:%i data2:%i\n",data->pixelData[1][2], data->pixelData[1][3], data->pixelData[1][4]);
+                    close(pipeFileHeader[READ]); 
+                    close(pipeInfoHeader[READ]); 
+                    close(pipeData[READ]);
+                    
                 }
+                // else if(steps == 1)
+                // {
+                //     close(pipeGrayData[WRITE]);
+                //     read(pipeGrayData[READ], grayData, sizeof(grayData));
+                //     close(pipeGrayData[READ]);
+                // }
+                // else if(steps == 2)
+                // {
+                //     close(pipeBinData[WRITE]);
+                //     read(pipeBinData[READ], binaryData, sizeof(binaryData));
+                //     close(pipeBinData[READ]);
+                // }
+                // else if(steps == 3)
+                // {
+                //     close(pipeNearlyBlack[WRITE]);
+                //     read(pipeNearlyBlack[READ], imgPrintResult, sizeof(imgPrintResult));
+                //     close(pipeNearlyBlack[READ]);
+                // }
+
+
+                // if(pid_hijo != pid)
+                // {
+                //     printf("Algo ha ocurrido al terminar el proceso hijo.\n");
+                //     exit(1);
+                // }
+                
+                //printf("WTF -> data:%i data1:%i data2:%i\n", data->pixelData[1][2], data->pixelData[1][3], data->pixelData[1][4]);
+                steps++;
             }
         }
         
@@ -134,10 +206,10 @@ void mainMenu(int cflag, int uflag, int nflag, int bflag)
         cValue--;
         imgCount++;
         /* Se libera memoria del doble puntero 'data' */
-        freeData(data, bmpInfoHeader->width, bmpInfoHeader->height, bmpInfoHeader->bitPerPixel);
-        free(bmpFileHeader);
-        free(bmpInfoHeader);
-        free(binaryData);
+        //freeData(data, bmpInfoHeader->width, bmpInfoHeader->height, bmpInfoHeader->bitPerPixel);
+        //free(bmpFileHeader);
+        //free(bmpInfoHeader);
+        //free(binaryData);
     }
 
     /* Muestra por pantalla resultado si bflag esta activo*/
@@ -146,7 +218,7 @@ void mainMenu(int cflag, int uflag, int nflag, int bflag)
         printResult(imgPrintResult, cflag);
     }
 
-    free(imgPrintResult);
+    //free(imgPrintResult);
 }
 
 /*
@@ -239,16 +311,15 @@ FILE* readImageHeader(int imgCount, FILE* fp, BITMAPFILEHEADER *bmpFileHeader, B
  * 
  * Salida: Doble puntero a la matriz de datos llamado 'data'.
  */
-unsigned char** readImageData(FILE *fp, BITMAPFILEHEADER *bmpFileHeader, BITMAPINFOHEADER *bmpInfoHeader)
+void readImageData(FILE *fp, BITMAPFILEHEADER *bmpFileHeader, BITMAPINFOHEADER *bmpInfoHeader, DATA *data)
 {
-    unsigned char **data = NULL;
     int rowSize, pixelArray;
     RGB *pixel;
 
     rowSize = (((bmpInfoHeader->bitPerPixel * bmpInfoHeader->width) + 31) / 32) * 4;
     pixelArray = rowSize * bmpInfoHeader->height;
 
-    data = createBuffer(bmpInfoHeader->width, bmpInfoHeader->height, bmpInfoHeader->bitPerPixel);
+    createBuffer(bmpInfoHeader->width, bmpInfoHeader->height, bmpInfoHeader->bitPerPixel, data);
 
     if(data != NULL)
     {
@@ -262,14 +333,14 @@ unsigned char** readImageData(FILE *fp, BITMAPFILEHEADER *bmpFileHeader, BITMAPI
             for(j=0;j<rowSize;j+=4)
             {
                 fread(pixel, sizeof(RGB), 1, fp);
-                data[i][j]   = pixel->blue;
-                data[i][j+1] = pixel->green;
-                data[i][j+2] = pixel->red;
-                data[i][j+3] = pixel->alpha;
+                data->pixelData[i][j]   = pixel->blue;
+                data->pixelData[i][j+1] = pixel->green;
+                data->pixelData[i][j+2] = pixel->red;
+                data->pixelData[i][j+3] = pixel->alpha;
             }
         }
         fclose(fp);
-        return data;
+        //return data;
     }
     else
     {
@@ -289,28 +360,27 @@ unsigned char** readImageData(FILE *fp, BITMAPFILEHEADER *bmpFileHeader, BITMAPI
  * 
  * Salida: Doble puntero de datos 'data'.
  */
-unsigned char** createBuffer(int width, int height, int bitPerPixel)
+void createBuffer(int width, int height, int bitPerPixel, DATA *data)
 {
-    unsigned char** data = NULL;
     int rowSize, pixelArray, i;
 
     rowSize = (((bitPerPixel * width) + 31) / 32) * 4;
     pixelArray = rowSize * height;
-    data = (unsigned char**)malloc(sizeof(unsigned char*) * height);
+    data->pixelData = (unsigned char**)malloc(sizeof(unsigned char*) * height);
 
     if(data != NULL)
     {
         for(i=0; i< height; i++)
         {
-            data[i] = (unsigned char*)malloc(sizeof(unsigned char) * rowSize);
-            if(data[i] == NULL)
+            data->pixelData[i] = (unsigned char*)malloc(sizeof(unsigned char) * rowSize);
+            if(data->pixelData[i] == NULL)
             {
                 printf("No existe espacio para asignar memoria a las filas de la matriz.\n");
                 exit(1);
             }
         }
 
-        return data;
+        //return data;
     }
     else
     {
@@ -519,7 +589,8 @@ int isNearlyBlack(unsigned int *binaryData, int nflag, int width, int height)
         }
     }
 
-    value = ((float)black/(float)totalSize) * 100; 
+    value = ((float)black/(float)totalSize) * 100;
+    printf("VALOR NEARLY BLACK: %f\n", value); 
     if( value >  nflag)
     {
         return 1;

@@ -67,4 +67,12 @@ typedef struct __attribute__((__packed__))
 
 } RGB;
 
+typedef struct _Data 
+{
+    unsigned char** pixelData;
+    unsigned int* binaryData;
+    unsigned int* grayData;
+
+} DATA;
+
 #endif

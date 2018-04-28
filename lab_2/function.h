@@ -13,8 +13,8 @@ unsigned int ReadLE8(FILE *fp);
 /* function.c file */
 void mainMenu(int cflag, int uflag, int nflag, int bflag);
 FILE* readImageHeader(int imgCount, FILE* fp, BITMAPFILEHEADER *bmpFileHeader, BITMAPINFOHEADER *bmpInfoHeader);
-unsigned char** readImageData(FILE *fp, BITMAPFILEHEADER *bmpFileHeader, BITMAPINFOHEADER *bmpInfoHeader);
-unsigned char** createBuffer(int width, int height, int bitPerPixel);
+void readImageData(FILE *fp, BITMAPFILEHEADER *bmpFileHeader, BITMAPINFOHEADER *bmpInfoHeader, DATA *data);
+void createBuffer(int width, int height, int bitPerPixel, DATA *data);
 unsigned int* binaryImageData(int uflag, unsigned int* grayData,BITMAPINFOHEADER *bmpInfoHeader);
 unsigned int* scaleGrayData(unsigned char** data, BITMAPINFOHEADER *bmpInfoHeader);
 void writeBinaryImage(unsigned int* binaryData, int imgCount, BITMAPFILEHEADER *bmpFileHeader, BITMAPINFOHEADER *bmpInfoHeader);
