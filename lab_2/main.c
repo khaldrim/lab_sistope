@@ -13,9 +13,6 @@
  */
 int main(int argc, char** argv)
 {
-    /*
-       
-    */
     int cflag = 0;
     int uflag = 0;
     int nflag = 0;
@@ -74,8 +71,6 @@ int main(int argc, char** argv)
                 abort();
         }
     }
-
-    //printf("cflag=%d, uflag=%d, nflag=%d, bflag=%d \n", cflag, uflag, nflag, bflag);
     mainMenu(cflag, uflag, nflag, bflag);
     
     return 0;

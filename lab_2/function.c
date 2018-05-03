@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <sys/wait.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include "struct.h"
 #include "function.h"
