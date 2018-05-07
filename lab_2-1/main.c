@@ -78,84 +78,100 @@ int main(int argc, char** argv)
     }
 
     mainMenu(cflag, uflag, nflag, bflag);
-    printf("\n\n ### FIN PROCESO PID: %i ### \n",getpid());
     return 0;
 }
 
 void mainMenu(int cflag, int uflag, int nflag, int bflag)
 {
-    /* Variables */
-    int cValue, imgCount, status;
-    int* imgPrintResult = NULL;
-    char bufferImg[5], bufferUflag[5], bufferNflag[5];
-
-    /* PIDS Y PIPES */
+    /* Pid y Pipes */
     pid_t pid;
-    int pipePC[2]; /* pipe Parent -> Child */
-
-    /* Inicializacion de resultados*/
-    imgPrintResult = (int*)malloc(sizeof(int)*cflag);
-    if(imgPrintResult == NULL)
+    int pipeFileHeader[2], pipeInfoHeader[2], pipeData[2];
+    
+    if((pipe(pipeFileHeader) == -1) || (pipe(pipeInfoHeader) == -1) || (pipe(pipeData) == -1))
     {
-        printf("No se logro asignar memoria para imprimir resultados por pantalla.\n");
-        exit(1);
-    }
-
-    if((pipe(pipePC)) == -1)
-    {
-        printf("Error creando el pipe de comunicacion del proceso MAIN a readImage.\n");
+        printf("Error iniciado pipes en main.\n");
         exit(EXIT_FAILURE);
     }
 
-    cValue = cflag;
-    status = 0;
-    imgCount = 0;
 
-    printf("PID PADRE: %i\n", getpid());
-
-    while(cValue > 0)
+    pid = fork();
+    if(pid == -1)
     {
-        printf("\ncValue: %i | imgCount: %i\n",cValue,imgCount);
-        pid = fork();
-        if(pid == -1) /* Error */
-        {
-            printf("Error creando el proceso readImage desde el proceso Main.\n");
-            exit(EXIT_FAILURE);
-        }
-        else if(pid == 0) /* Hijo */
-        {
-            //Leo el valor que me envia el padre
-            close(pipePC[WRITE]);
-            read(pipePC[READ], &imgCount, sizeof(imgCount));
-            close(pipePC[WRITE]);
-
-            //Transformo a char los valores a pasar como parametro
-            sprintf(bufferImg,"%d",imgCount);
-            sprintf(bufferUflag,"%d",uflag);
-            sprintf(bufferNflag,"%d",nflag);
-            
-
-            char *argv[4] = {bufferImg, bufferUflag, bufferNflag, NULL}; /* argv to execv*/
-            execv("readImage",argv);            
-        }
-        else /* Padre */
-        {
-            imgCount++;
-            cValue--;
-            
-            //Paso el valor de imgCount al hijo.
-            close(pipePC[READ]); 
-            write(pipePC[WRITE], &imgCount, sizeof(imgCount));
-            close(pipePC[WRITE]);
-            
-            //Espero que el hijo termine su ejecucion
-            wait(NULL);
-        }
+        printf("Error al crear hijo de Main -> readImage.\n");
+        exit(EXIT_FAILURE);
     }
+    else if(pid == 0)
+    {
+        // Hijo
 
-    // if(bflag == 1)
-    // {
-    //     printResult(imgPrintResult, cflag);
-    // }
+        /* Variables del hijo */
+        BITMAPFILEHEADER *bmpFileHeader = NULL;
+        BITMAPINFOHEADER *bmpInfoHeader = NULL;
+        DATA *data = NULL;
+
+        char bufferCflag[3];
+        char bufferUflag[3];
+        char bufferNflag[3];
+
+        char bufferFHPointer[25];
+        char bufferIHPointer[25];
+        char bufferDPointer[25];
+
+        /* Leer el pipe del padre */
+        close(pipeFileHeader[WRITE]);
+        close(pipeInfoHeader[WRITE]);
+        close(pipeData[WRITE]);
+
+        write(pipeFileHeader[READ],&bmpFileHeader,sizeof(bmpFileHeader));
+        write(pipeInfoHeader[READ],&bmpInfoHeader,sizeof(bmpInfoHeader));
+        write(pipeData[READ],&data,sizeof(data));
+
+        close(pipeFileHeader[READ]);
+        close(pipeInfoHeader[READ]);
+        close(pipeData[READ]);
+
+        /* Transformar a char los parametros a pasar */
+        sprintf(bufferCflag,"%d",cflag);
+        sprintf(bufferUflag,"%d",uflag);
+        sprintf(bufferNflag,"%d",nflag);
+
+        sprintf(bufferFHPointer,"%d",&bmpFileHeader);
+        sprintf(bufferIHPointer,"%d",&bmpInfoHeader);
+        sprintf(bufferDPointer,"%d",&data);
+
+        char *args = {bufferCflag,bufferUflag,bufferNflag,bufferFHPointer,bufferIHPointer,bufferDPointer,NULL};
+        execv("readImage",args); 
+    }
+    else
+    {
+        // Padre
+
+        /* Variables del padre */
+        BITMAPFILEHEADER *bmpFileHeader = NULL;
+        BITMAPINFOHEADER *bmpInfoHeader = NULL;
+        DATA *data = NULL;
+
+
+        /* Inicializacion */
+        bmpFileHeader = (BITMAPFILEHEADER*)malloc(sizeof(BITMAPFILEHEADER));
+        bmpInfoHeader = (BITMAPINFOHEADER*)malloc(sizeof(BITMAPINFOHEADER));
+        data = (DATA*)malloc(sizeof(DATA));
+
+        bmpInfoHeader->width = 999;
+
+        close(pipeFileHeader[READ]);
+        close(pipeInfoHeader[READ]);
+        close(pipeData[READ]);
+
+        write(pipeFileHeader[WRITE],&bmpFileHeader,sizeof(bmpFileHeader));
+        write(pipeInfoHeader[WRITE],&bmpInfoHeader,sizeof(bmpInfoHeader));
+        write(pipeData[WRITE],&data,sizeof(data));
+
+        close(pipeFileHeader[WRITE]);
+        close(pipeInfoHeader[WRITE]);
+        close(pipeData[WRITE]);
+
+        /* Padre debe esperar a hijo aca */
+        wait(NULL);
+    }
 }
-

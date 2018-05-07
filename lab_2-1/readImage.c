@@ -14,20 +14,32 @@
 int main(int argc, char** argv)
 {
     /* Variables que ingresan por parametro */
-    int uflag  = 0;
-    int nflag  = 0;
-    int imgNum = 0;
+    int cflag = 0;
+    int uflag = 0;
+    int nflag = 0;
 
-    imgNum = atoi(argv[0]);
-    uflag  = atoi(argv[1]);
-    nflag  = atoi(argv[2]);
+    BITMAPINFOHEADER *bmpInfoHeader = NULL;
+    BITMAPFILEHEADER *bmpFileHeader = NULL;
+    DATA *data = NULL;
+
+    // Rescato los datos del argumento.
+    cflag = atoi(argv[0]);
+    uflag = atoi(argv[1]);
+    nflag = atoi(argv[2]);
+
+    bmpFileHeader = atoi(argv[3]);
+    bmpInfoHeader = atoi(argv[4]);
+    data = atoi(argv[5]);
 
     printf("        argc: %i\n", argc);
-    printf("        i: %d\n", imgNum);
+    printf("        i: %d\n", cflag);
     printf("        u: %d\n", uflag);
     printf("        n: %d\n", nflag);
 
-    /* Variables del proceso */
+    printf("        info header: %llu\n",bmpInfoHeader->width);
+
+}
+    /*
     int rowSize, pixelArray;
     RGB *pixel;
     BITMAPFILEHEADER *bmpFileHeader = NULL;
@@ -47,12 +59,12 @@ int main(int argc, char** argv)
     }
 
     pid = fork();
-    if(pid == -1) /* Error */
+    if(pid == -1) 
     {
         printf("No se logro crear el hijo en el proceso que lee la imagen.\n");
         exit(EXIT_FAILURE);
     }
-    else if(pid == 0) /* Hijo */
+    else if(pid == 0) 
     {
         BITMAPINFOHEADER *info = NULL;
         printf("Soy el hijo! readImage \n");
@@ -71,11 +83,11 @@ int main(int argc, char** argv)
         sprintf(buff,"%d",info);
         
         
-        char *argv[2] = {buff,NULL}; /* argv to execv*/
+        char *argv[2] = {buff,NULL}; 
         execv("scaleGray",argv);            
 
     }
-    else /* Padre */
+    else 
     {
         printf("    PID READIMAGE: %i\n",getpid());
         printf("    1. Proceso: readImage -> Inicia su proceso.\n");
@@ -84,10 +96,8 @@ int main(int argc, char** argv)
         strcat(fileName, fileNumber);
         strcat(fileName, ".bmp");
 
-        /* 
-        *   Formato nombre de archivo .bmp: imagenes/imagen_X.bmp 
-        *   Por ahora solo leemos imagenes de 32 bpp con un headerSize de 124 bytes 
-        */
+        //    Formato nombre de archivo .bmp: imagenes/imagen_X.bmp 
+        //    Por ahora solo leemos imagenes de 32 bpp con un headerSize de 124 bytes 
 
         if((fp = fopen(fileName,"rb")) == NULL)
         {
@@ -102,7 +112,6 @@ int main(int argc, char** argv)
         bmpFileHeader = ReadBMPFileHeader(fp, bmpFileHeader);
         bmpInfoHeader = ReadBMPInfoHeader(fp, bmpInfoHeader);
 
-        /* Leemos los datos de la imagen */
         printf("        Empezamos a leer los datos de la imagen.\n");
         rowSize = (((bmpInfoHeader->bitPerPixel * bmpInfoHeader->width) + 31) / 32) * 4;
         pixelArray = rowSize * bmpInfoHeader->height;
@@ -131,11 +140,9 @@ int main(int argc, char** argv)
         }
         printf("        Datos leidos correctamente.\n");
 
-        /* Le envio los datos al hijo */
 
         
 
-        /* Esperamos a que el hijo termine */
         wait(NULL);
     }
 
@@ -171,3 +178,4 @@ DATA* createBuffer(int width, int height, int bitPerPixel, DATA *data)
         exit(1);
     }
 }
+*/

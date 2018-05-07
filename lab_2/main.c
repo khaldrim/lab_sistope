@@ -2,30 +2,20 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "function.h"
+#include <sys/wait.h>
+#include <sys/types.h>
+#include "struct.h"
 
-/*
- * Descripcion: Permite ingresar parametros por consola, los cuales son los siguientes:
- *                c -> Cantidad de imagenes.
- *                u -> Umbral para binarizar la imagen.
- *                n -> Umbral para clasificacion.
- *                b -> Indica si se debe mostrar los resultados por pantalla al leer la imagen binarizada.
- */
-int main(int argc, char** argv)
+#define READ 0  /* Index of the read end of a pipe */
+#define WRITE 1 /* Index of he write end of a pipe*/
+
+int main(int argc,char** argv)
 {
-    int cflag = 0;
-    int uflag = 0;
-    int nflag = 0;
-    int bflag = 0;
-
-    int x;
-    int index;
-
-    extern int optopt;
-    extern int opterr;
+    /* Obtengo los parametros de entrada */
+    int cflag,uflag,nflag,bflag,x,index;
+    extern int optopt,opterr;
     extern char* optarg;
-    opterr = 0;
-
+    opterr=0;
 
     while((x = getopt(argc, argv, ":c:u:n:b")) != -1)
     {
@@ -71,7 +61,57 @@ int main(int argc, char** argv)
                 abort();
         }
     }
-    mainMenu(cflag, uflag, nflag, bflag);
-    
-    return 0;
+
+    /* Pid y Pipe */
+    pid_t pid;
+    int imgCount = 0;
+
+
+
+    int i=0;
+    while(cflag > 0)
+    {
+        int fd[2];
+        
+        if(pipe(fd) == -1)
+        {
+            perror("Error");
+            exit(EXIT_FAILURE);
+        }
+
+        pid = fork();
+        if(pid == -1)
+        {
+            perror("Error");
+            exit(EXIT_FAILURE);
+        }
+        else if(pid == 0) /* Proceso hijo */
+        {
+            int count;
+
+            close(fd[WRITE]);
+            read(fd[READ],&count,sizeof(count));
+            close(fd[READ]);
+
+            // printf("Lei %i desde el hijo %i\n",count,getpid());
+            char **argv = {NULL};
+            execv("readImage",argv);
+
+            printf("Execv se ejecuto mal desde el proceso Main.\n");
+            exit(EXIT_FAILURE);
+        }
+        else
+        {
+            printf("i: %i | cflag: %i | imgCount: %i\n",i,cflag,imgCount);
+
+            close(fd[READ]);
+            write(fd[WRITE], &imgCount, sizeof(imgCount));
+            close(fd[WRITE]);
+
+            wait(NULL);
+            cflag--;
+            imgCount++;
+            i++;
+        }
+    }
 }
