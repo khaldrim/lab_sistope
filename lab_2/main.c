@@ -87,15 +87,19 @@ int main(int argc,char** argv)
         }
         else if(pid == 0) /* Proceso hijo */
         {
+            printf("Hijo desde main.\n");
             int count;
+            char argCount[10];
 
             close(fd[WRITE]);
             read(fd[READ],&count,sizeof(count));
             close(fd[READ]);
 
             // printf("Lei %i desde el hijo %i\n",count,getpid());
-            char **argv = {NULL};
-            execv("readImage",argv);
+            // char **argv = {NULL};
+            sprintf(argCount,"%d",count);
+
+            execv("readImage",(char *[]){"./readImage", "-c", argCount,NULL});
 
             printf("Execv se ejecuto mal desde el proceso Main.\n");
             exit(EXIT_FAILURE);
