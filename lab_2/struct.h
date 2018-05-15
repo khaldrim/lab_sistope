@@ -11,7 +11,7 @@ typedef unsigned long long LONG; /* 8 bytes */
 /* Bitmap file header struct */
 typedef struct  __attribute__((__packed__))
 {
-    unsigned char type[3]; /* 2 bytes + null char */
+    char type[3]; /* 2 bytes + null char */
     DWORD size;
     WORD reserved1;
     WORD reserved2;
