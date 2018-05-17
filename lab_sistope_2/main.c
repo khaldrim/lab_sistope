@@ -12,8 +12,7 @@
 int main(int argc, char *argv[])
 {
     pid_t pid;
-    int status;
-    int pipefd[2];
+    int status = 0;
 
     int cflag,uflag,nflag,bflag,x,index;
     extern int optopt,opterr;
@@ -66,14 +65,16 @@ int main(int argc, char *argv[])
         }
     }
 
-    if(pipe(pipefd) == -1)
-    {
-        printf("Error creando pipe en Main.\n");
-        exit(EXIT_FAILURE);
-    }
-
     while(cflag > 0)
     {
+        int pipefd[2];
+        
+        if(pipe(pipefd) == -1)
+        {
+            printf("Error creando pipe en Main.\n");
+            exit(EXIT_FAILURE);
+        }
+        
         pid = fork();
         if(pid == -1)
         {
@@ -83,10 +84,17 @@ int main(int argc, char *argv[])
         else if(pid == 0)
         {
             /* Proceso hijo */
-
-            dup2(pipefd[READ], STDIN_FILENO);
+            int dupStatus;
             close(pipefd[WRITE]);
+            dupStatus = dup2(pipefd[READ], STDOUT_FILENO);
+            if(dupStatus == -1)
+            {
+                perror("Dup2 Error: ");
+                exit(EXIT_FAILURE);
+            }
 
+            close(pipefd[READ]);
+            
             execv("./readImage", (char *[]){NULL});
 
             printf("Error al ejecutar el execv desde Main.\n");
@@ -95,19 +103,21 @@ int main(int argc, char *argv[])
         else
         {
             /* Proceso padre */
-
-            printf("\n# Inicio Main => pid(%i) \n", getpid());
-            
+            int dupStatus;
             imgCount++;
+            cflag--;
+            
+            printf("\n# Inicio Main => pid(%i) \n", getpid());
+            close(pipefd[READ]);
 
             write(pipefd[WRITE], &imgCount, sizeof(imgCount));
             write(pipefd[WRITE], &uflag, sizeof(uflag));
             write(pipefd[WRITE], &nflag, sizeof(nflag));
 
-            cflag--;
-            wait(NULL);
-            // waitpid(pid, &status, WUNTRACED);
-            
+            close(pipefd[WRITE]);
+
+            wait(&status);
+            printf("# Fin ciclo: %i \n", cflag+1);            
         }
     }
 
