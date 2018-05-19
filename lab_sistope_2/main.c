@@ -85,6 +85,7 @@ int main(int argc, char *argv[])
         {
             /* Proceso hijo */
             int dupStatus;
+
             close(pipefd[WRITE]);
             dupStatus = dup2(pipefd[READ], STDOUT_FILENO);
             if(dupStatus == -1)
@@ -93,8 +94,6 @@ int main(int argc, char *argv[])
                 exit(EXIT_FAILURE);
             }
 
-            close(pipefd[READ]);
-            
             execv("./readImage", (char *[]){NULL});
 
             printf("Error al ejecutar el execv desde Main.\n");
@@ -105,18 +104,17 @@ int main(int argc, char *argv[])
             /* Proceso padre */
             int dupStatus;
             imgCount++;
-            cflag--;
             
             printf("\n# Inicio Main => pid(%i) \n", getpid());
+            
             close(pipefd[READ]);
-
-            write(pipefd[WRITE], &imgCount, sizeof(imgCount));
-            write(pipefd[WRITE], &uflag, sizeof(uflag));
-            write(pipefd[WRITE], &nflag, sizeof(nflag));
-
-            close(pipefd[WRITE]);
-
+            write(pipefd[WRITE], &imgCount, sizeof(int));
+            write(pipefd[WRITE], &uflag, sizeof(int));
+            write(pipefd[WRITE], &nflag, sizeof(int));
+            write(pipefd[WRITE], &bflag, sizeof(int));
+            
             wait(&status);
+            cflag--;
             printf("# Fin ciclo: %i \n", cflag+1);            
         }
     }

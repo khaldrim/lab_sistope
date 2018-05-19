@@ -3,75 +3,115 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <sys/types.h>
-#include <sys/poll.h>
+
+#define READ 0
+#define WRITE 1
 
 unsigned char** createBuffer(int width, int height, int bitPerPixel);
 
 
 int main(int argc, char* argv[])
 {
-    struct pollfd fds[1];
-    int pollstatus;
-    int cflag, uflag, nflag, i, j, totalData, totalSize;
-    unsigned int bpp;
-    unsigned long long width, height;
-
-    unsigned char red, green, blue;
-    double scale;
-    unsigned int* scaleData;
-    char buff[9];
-    
-    printf("        # Inicio scaleGray => pid(%i) \n", getpid());
-    
-    read(STDOUT_FILENO, &cflag, sizeof(cflag));
-    read(STDOUT_FILENO, &uflag, sizeof(uflag));
-    read(STDOUT_FILENO, &nflag, sizeof(nflag));
-    read(STDOUT_FILENO, &width, sizeof(width));
-    read(STDOUT_FILENO, &height, sizeof(height));
-    read(STDOUT_FILENO, &bpp, sizeof(bpp));
-
-    totalSize = width * height;
-    scaleData = (unsigned int*)malloc(sizeof(unsigned int) * totalSize);
-    totalData = totalSize * 3;
-
-    printf("            Inicio de leer datos.\n");
-    j = 0;
-    for(i = 0; i < totalData; i+=3)
-    {
-        read(STDOUT_FILENO, &blue, sizeof(unsigned char));
-        read(STDOUT_FILENO, &green, sizeof(unsigned char));
-        read(STDOUT_FILENO, &red, sizeof(unsigned char));
-
-        /* Mientras leo, convierto los datos a escala de grises */
-        scale = (int)red*0.3 + (int)green*0.59 + (int)blue*0.11;
-        scaleData[j] = (int)scale;
-        j++;
-    }
-    printf("            Termino de leer todos los datos en scaleGray.\n");
-    // printf("        desde scaleGray => cflag: %i | uflag: %i | nflag: %i \n",cflag, uflag, nflag);
-    // printf("        desde scaleGray: width %llu  height %llu\n", width,height);
-
-    printf("        # Fin scaleGray\n");
+    printf("hola\n");
     return 0;
 
-    // fds[0].fd = STDIN_FILENO;
-    // fds[0].events = POLLIN | POLLOUT;
+    
+    // pid_t pid;
+    // int pipefd[2];
+    // int status = 0;
 
-    // //                file descrip. , num estructuras, tiempo 
-    // pollstatus = poll(fds, 1, 5000);
-    // if(pollstatus > 0)
+    // if(pipe(pipefd) == -1)
     // {
-    //     if(fds[0].revents & POLLIN)
-    //     {
-    //         read(STDIN_FILENO, &buff, sizeof(buff));
-    //     }
+    //     printf("Error creando el pipe en readImage.\n");
+    //     exit(EXIT_FAILURE);
     // }
 
-    // printf("        cflag: %i | uflag: %i | nflag: %i \n",cflag, uflag, nflag);
-    // printf("        desde el poll: %s\n", buff);
+    // pid = fork();
+    // if(pid == -1)
+    // {
+    //     /* Error */
+    //     printf("Error creando el fork en el readImage.\n");
+    //     exit(EXIT_FAILURE);
+    // }
+    // else if(pid == 0)
+    // {
+    //     /* Proceso hijo */
+    //     int dupStatus;
 
-    // printf("        # Fin scaleGray => pid(%i) \n", getpid());
-    // return 0;
+    //     printf("asdaasda\n");
+    //     exit(0);
+
+    //     close(pipefd[WRITE]);
+    //     dupStatus = dup2(pipefd[READ], STDIN_FILENO);
+    //     if(dupStatus == -1)
+    //     {
+    //         perror("Dup2 Error: ");
+    //         exit(EXIT_FAILURE);
+    //     }
+        
+    //     execv("./binaryImage", (char *[]){NULL});
+
+    //     printf("Error al ejecutar el execv desde readImage.\n");
+    //     exit(EXIT_FAILURE);
+    // }
+    // else
+    // {
+    //     /* Proceso padre */
+    //     int cflag, uflag, nflag, bflag, i, j, totalData, totalSize;
+    //     unsigned long long width, height;
+    //     unsigned char red, green, blue;
+    //     double scale;
+    //     unsigned int* scaleData;
+
+    //     printf("        # Inicio scaleGray => pid(%i) \n", getpid());
+        
+    //     read(STDOUT_FILENO, &cflag, sizeof(int));
+    //     read(STDOUT_FILENO, &uflag, sizeof(int));
+    //     read(STDOUT_FILENO, &nflag, sizeof(int));
+    //     read(STDOUT_FILENO, &bflag, sizeof(int));
+    //     read(STDOUT_FILENO, &width, sizeof(int));
+    //     read(STDOUT_FILENO, &height, sizeof(int));
+
+    //     // fflush(STDIN_FILENO);
+
+    //     printf("            # scaleGray cflag: %i | uflag: %i | nflag: %i | bflag: %i \n", cflag, uflag, nflag, bflag);
+    //     printf("            # scaleGray width: %llu | height: %llu \n", width, height);
+    //     totalSize = width * height;
+    //     scaleData = (unsigned int*)malloc(sizeof(unsigned int) * totalSize);
+    //     totalData = totalSize * 3;
+
+    //     // printf("            Inicio de leer datos.\n");
+    //     j = 0;
+    //     for(i = 0; i < totalData; i+=3)
+    //     {
+    //         read(STDOUT_FILENO, &blue, sizeof(unsigned char));
+    //         read(STDOUT_FILENO, &green, sizeof(unsigned char));
+    //         read(STDOUT_FILENO, &red, sizeof(unsigned char));
+
+    //         /* Mientras leo, convierto los datos a escala de grises */
+    //         scale = (int)red*0.3 + (int)green*0.59 + (int)blue*0.11;
+    //         scaleData[j] = (int)scale;
+    //         j++;
+    //     }
+
+    //     close(pipefd[READ]);
+    //     write(pipefd[WRITE], &cflag, sizeof(int));
+    //     write(pipefd[WRITE], &uflag, sizeof(int));
+    //     write(pipefd[WRITE], &nflag, sizeof(int));
+    //     write(pipefd[WRITE], &bflag, sizeof(int));
+    //     write(pipefd[WRITE], &width, sizeof(unsigned long long));
+    //     write(pipefd[WRITE], &height, sizeof(unsigned long long));
+
+    //     j = 0;
+    //     for(j=0;j<totalSize;j++)
+    //     {
+    //         write(pipefd[WRITE], &scaleData[j], sizeof(unsigned int));
+    //     }
+
+    //     printf("        # Fin scaleGray\n");
+    //     wait(&status);
+    //     return 0;
+    // }
 }
 
 unsigned char** createBuffer(int width, int height, int bitPerPixel)

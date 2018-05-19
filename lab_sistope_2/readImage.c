@@ -43,7 +43,6 @@ int main(int argc, char *argv[])
             exit(EXIT_FAILURE);
         }
 
-        close(pipefd[READ]);
         execv("./scaleGray", (char *[]){NULL});
 
         printf("Error al ejecutar el execv desde readImage.\n");
@@ -52,20 +51,24 @@ int main(int argc, char *argv[])
     else 
     {
         /* Proceso padre */
-        int cflag, uflag, nflag,i,j, rowSize;
+        int cflag, uflag, nflag, bflag,i,j, rowSize;
         struct pollfd fds[1];
         int pollstatus;
+
+        FILE *escritura;
+        escritura = fopen("resultados.txt", "w+");
 
         FILE *fp = NULL;
         BITMAPFILEHEADER *bmpFileHeader = NULL;
         BITMAPINFOHEADER *bmpInfoHeader = NULL;
         DATA* data = NULL;
 
-        printf("    # Inicio readImage => pid(%i) \n", getpid());
-
-        read(STDOUT_FILENO, &cflag, sizeof(cflag));
-        read(STDOUT_FILENO, &uflag, sizeof(uflag));
-        read(STDOUT_FILENO, &nflag, sizeof(nflag));
+        read(STDOUT_FILENO, &cflag, sizeof(int));
+        read(STDOUT_FILENO, &uflag, sizeof(int));
+        read(STDOUT_FILENO, &nflag, sizeof(int));
+        read(STDOUT_FILENO, &bflag, sizeof(int));
+        
+        fprintf(escritura, "   # readImage => cflag: %i, uflag: %i, nflag: %i, bflag: %i. \n",cflag, uflag, nflag, bflag);
 
         bmpFileHeader = (BITMAPFILEHEADER*)malloc(sizeof(BITMAPFILEHEADER));
         bmpInfoHeader = (BITMAPINFOHEADER*)malloc(sizeof(BITMAPINFOHEADER));
@@ -74,16 +77,18 @@ int main(int argc, char *argv[])
         fp = readImageHeader(cflag, fp, bmpFileHeader, bmpInfoHeader);
         data->pixelData = readImageData(fp, bmpFileHeader, bmpInfoHeader);
         
-        // // Aqui escribir archivo en blanco.
+        fprintf(escritura, "   # readImage => width: %llu , height: %llu \n",bmpInfoHeader->width, bmpInfoHeader->height);
+        
+        // Aqui escribir archivo en blanco.
 
         close(pipefd[READ]);
-        
-        write(pipefd[WRITE], &cflag, sizeof(cflag));
-        write(pipefd[WRITE], &uflag, sizeof(uflag));
-        write(pipefd[WRITE], &nflag, sizeof(nflag));
-        write(pipefd[WRITE], &bmpInfoHeader->width, sizeof(bmpInfoHeader->width));
-        write(pipefd[WRITE], &bmpInfoHeader->height, sizeof(bmpInfoHeader->height));
-        write(pipefd[WRITE], &bmpInfoHeader->bitPerPixel, sizeof(bmpInfoHeader->bitPerPixel));
+        write(pipefd[WRITE], &cflag, sizeof(int));
+        write(pipefd[WRITE], &uflag, sizeof(int));
+        write(pipefd[WRITE], &nflag, sizeof(int));
+        write(pipefd[WRITE], &bflag, sizeof(int));
+        write(pipefd[WRITE], &bmpInfoHeader->width, sizeof(unsigned long long));
+        write(pipefd[WRITE], &bmpInfoHeader->height, sizeof(unsigned long long));
+
         /* Writing image data in pipe*/
         rowSize = (((bmpInfoHeader->bitPerPixel * bmpInfoHeader->width) + 31) / 32) * 4;
 
@@ -97,23 +102,9 @@ int main(int argc, char *argv[])
             }
         }
 
-        close(pipefd[WRITE]);
-
-        // fds[0].fd = pipefd[WRITE];
-        // fds[0].events = POLLIN | POLLOUT;
-
-        // // //                file descrip. , num estructuras, tiempo 
-        // // pollstatus = poll(fds, 1, 5000);
-        // // if(pollstatus > 0)
-        // // {
-        // //     if(fds[0].revents & POLLOUT)
-        // //     {
-        // //         write(pipefd[WRITE], "HOLA SAAS", 9);
-        // //     }
-        // // }
-
-        wait(&status);
+       
         printf("    # Fin readImage.\n");
+        wait(&status);
         return 0;
     }
 }
@@ -193,6 +184,7 @@ unsigned char** createBuffer(int width, int height, int bitPerPixel)
     rowSize = (((bitPerPixel * width) + 31) / 32) * 4;
     pixelArray = rowSize * height;
 
+    printf("    width:%i | height:%i\n", width, height);
     data = (unsigned char**)malloc(sizeof(unsigned char*) * height);
 
     if(data != NULL)
