@@ -1,0 +1,7 @@
+# Es importante destacar que para el correcto funcionamiento de este laboratorio
+# las imagenes deben encontrarse en la carpeta 'imagenes' deben tener el siguiente formato:
+#           'imagen_x.bmp' -> donde 'x' es el numero de la imagen.
+
+# Tambien es importante resaltar que el programa comienza automaticamente de la imagen 1, por lo que
+# si se desea leer 3 imagenes, el comando por consola seria: './main -c 3 -u x -n x -b' y leeria las
+

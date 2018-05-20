@@ -1,0 +1,7 @@
+main
+readImage
+scaleGray
+binaryImage
+analisisImage
+writeImage
+.vscode

@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "struct.h"
-#include "readImage.h"
+#include "bmp.h"
 
 /*
  * Descripcion: Funcion que permite leer la cabezera de archivo de la imagen bmp, primero se 
@@ -83,8 +83,8 @@ BITMAPINFOHEADER *ReadBMPInfoHeader(FILE *fp, BITMAPINFOHEADER *header)
     unsigned int  reserved; 
 
     headersize = (unsigned int) ReadLE4 (fp);
-    width = (unsigned int) ReadLE4(fp);
-    height = (unsigned int) ReadLE4(fp);
+    width = (unsigned long long) ReadLE4(fp);
+    height = (unsigned long long) ReadLE4(fp);
     planes = (unsigned short) ReadLE2(fp);
     bitcount = (unsigned short) ReadLE2(fp);
     compression = (unsigned int) ReadLE4(fp);
@@ -114,39 +114,99 @@ BITMAPINFOHEADER *ReadBMPInfoHeader(FILE *fp, BITMAPINFOHEADER *header)
     profileData = (unsigned int) ReadLE4(fp);
     profileSize = (unsigned int) ReadLE4(fp);
     reserved = (unsigned int) ReadLE4(fp);
-    
-    header->size         = headersize;
-    header->width        = width;
-    header->height       = height;
-    header->planes       = planes;
-    header->bitPerPixel  = bitcount;
-    header->compression  = compression;
-    header->sizeImage = sizeImage;
-    header->xPelsPerMeter = xPelsPerMeter;
-    header->yPelsperMeter = yPelsperMeter;
-    header->used = used;
-    header->important = important;
-    header->redMask = redMask;
-    header->greenMask = greenMask;
-    header->blueMask = blueMask;
-    header->alphaMask = alphaMask;
-    header->csType = csType;
-    header->ciexyzXRed = xRed;
-    header->ciexyzYRed = yRed;
-    header->ciexyzZRed = zRed;
-    header->ciexyzXGreen = xGreen;
-    header->ciexyzYGreen = yGreen;
-    header->ciexyzZGreen = zGreen;
-    header->ciexyzXBlue = xBlue;
-    header->ciexyzYBlue = yBlue;
-    header->ciexyzZBlue = zBlue;
-    header->gammaRed = gammaRed;
-    header->gammaGreen = gammaGreen;
-    header->gammaBlue = gammaBlue;
-    header->intent = intent;
-    header->profileData = profileData;
-    header->profileSize = profileSize;
-    header->reserved = reserved;
+
+    // if(headersize == 40)
+    // {
+    //     width = (unsigned int) ReadLE4(fp);
+    //     height = (unsigned int) ReadLE4(fp);
+    //     planes = (unsigned short) ReadLE2(fp);
+    //     bitcount = (unsigned short) ReadLE2(fp);
+    //     compression = (unsigned int) ReadLE4(fp);
+    //     sizeImage = (unsigned int) ReadLE4(fp);
+    //     xPelsPerMeter = (unsigned long long) ReadLE8(fp);
+    //     yPelsperMeter = (unsigned long long) ReadLE8(fp);
+    //     used = (unsigned int) ReadLE4(fp);
+    //     important = (unsigned int) ReadLE4(fp);
+
+    //     header->size         = headersize;
+    //     header->width        = width;
+    //     header->height       = height;
+    //     header->planes       = planes;
+    //     header->bitPerPixel  = bitcount;
+    //     header->compression  = compression;
+    //     header->sizeImage = sizeImage;
+    //     header->xPelsPerMeter = xPelsPerMeter;
+    //     header->yPelsperMeter = yPelsperMeter;
+    //     header->used = used;
+    //     header->important = important;
+
+    // }
+    // else
+    // {
+    //     width = (unsigned int) ReadLE4(fp);
+    //     height = (unsigned int) ReadLE4(fp);
+    //     planes = (unsigned short) ReadLE2(fp);
+    //     bitcount = (unsigned short) ReadLE2(fp);
+    //     compression = (unsigned int) ReadLE4(fp);
+    //     sizeImage = (unsigned int) ReadLE4(fp);
+    //     xPelsPerMeter = (unsigned long long) ReadLE8(fp);
+    //     yPelsperMeter = (unsigned long long) ReadLE8(fp);
+    //     used = (unsigned int) ReadLE4(fp);
+    //     important = (unsigned int) ReadLE4(fp);
+    //     redMask = (unsigned int) ReadLE4(fp);
+    //     greenMask = (unsigned int) ReadLE4(fp);
+    //     blueMask = (unsigned int) ReadLE4(fp);
+    //     alphaMask = (unsigned int) ReadLE4(fp);
+    //     csType = (unsigned int) ReadLE4(fp);
+    //     xRed = (unsigned int) ReadLE4(fp);
+    //     yRed = (unsigned int) ReadLE4(fp);
+    //     zRed = (unsigned int) ReadLE4(fp);
+    //     xGreen = (unsigned int) ReadLE4(fp);
+    //     yGreen = (unsigned int) ReadLE4(fp);
+    //     zGreen = (unsigned int) ReadLE4(fp);
+    //     xBlue = (unsigned int) ReadLE4(fp);
+    //     yBlue = (unsigned int) ReadLE4(fp);
+    //     zBlue = (unsigned int) ReadLE4(fp);
+    //     gammaRed = (unsigned int) ReadLE4(fp);
+    //     gammaGreen = (unsigned int) ReadLE4(fp);
+    //     gammaBlue = (unsigned int) ReadLE4(fp);
+    //     intent = (unsigned int) ReadLE4(fp);
+    //     profileData = (unsigned int) ReadLE4(fp);
+    //     profileSize = (unsigned int) ReadLE4(fp);
+    //     reserved = (unsigned int) ReadLE4(fp);
+
+        header->size         = headersize;
+        header->width        = width;
+        header->height       = height;
+        header->planes       = planes;
+        header->bitPerPixel  = bitcount;
+        header->compression  = compression;
+        header->sizeImage = sizeImage;
+        header->xPelsPerMeter = xPelsPerMeter;
+        header->yPelsperMeter = yPelsperMeter;
+        header->used = used;
+        header->important = important;
+        header->redMask = redMask;
+        header->greenMask = greenMask;
+        header->blueMask = blueMask;
+        header->alphaMask = alphaMask;
+        header->csType = csType;
+        header->ciexyzXRed = xRed;
+        header->ciexyzYRed = yRed;
+        header->ciexyzZRed = zRed;
+        header->ciexyzXGreen = xGreen;
+        header->ciexyzYGreen = yGreen;
+        header->ciexyzZGreen = zGreen;
+        header->ciexyzXBlue = xBlue;
+        header->ciexyzYBlue = yBlue;
+        header->ciexyzZBlue = zBlue;
+        header->gammaRed = gammaRed;
+        header->gammaGreen = gammaGreen;
+        header->gammaBlue = gammaBlue;
+        header->intent = intent;
+        header->profileData = profileData;
+        header->profileSize = profileSize;
+        header->reserved = reserved;
 
     return header;
 }

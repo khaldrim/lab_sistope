@@ -1,105 +1,126 @@
 #include <stdio.h>
-#include <ctype.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
+#include <string.h>
 #include <sys/wait.h>
 #include <sys/types.h>
 #include "struct.h"
-#include "readImage.h"
+#include "bmp.h"
 
 #define READ 0  /* Index of the read end of a pipe */
 #define WRITE 1 /* Index of he write end of a pipe*/
 
-int main(int argc,char* argv[])
+/* Cabecera de funciones */
+FILE* readImageHeader(int imgCount, FILE* fp, BITMAPFILEHEADER *bmpFileHeader, BITMAPINFOHEADER *bmpInfoHeader);
+unsigned char** readImageData(FILE *fp, BITMAPFILEHEADER *bmpFileHeader, BITMAPINFOHEADER *bmpInfoHeader);
+unsigned char** createBuffer(int width, int height, int bitPerPixel);
+
+/*
+ * Descripcion: Primero inicia el pipe de comunicacion con el hijo, luego utilizamos fork() , en el hijo duplica con dup2() 
+ *              la entrada estandar, para que sea utilizada por el siguiente proceso. En el padre primero leemos los que nos llega
+ *              del proceso anterior, se leen en orden y se asignan a las variables correspondientes. Luego se lee la cabecera del archivo y
+ *              los datos. Despues se escriben en el pipe los datos correspondientes para que los utilice el siguiente proceso.
+ * 
+ * Entrada: Por argumentos niguna, por entrada estandar llega: cflag, uflag, nflag, bflag
+ * 
+ * Salida: Hacia el siguiente proceso se envia por pipe: cflag, uflag, nflag, bflag, width, height, offset, pixelData
+ */
+int main(int argc, char *argv[])
 {
     pid_t pid;
+    int pipefd[2];
     int status;
 
-    // Pipes
-    int fdFH[2], fdIH[2], fdData[2];
+    if(pipe(pipefd) == -1)
+    {
+        printf("Error creando el pipe en readImage.\n");
+        exit(EXIT_FAILURE);
+    }
 
     pid = fork();
     if(pid == -1)
     {
-        perror("Error");
+        /* Error */
+        printf("Error creando el fork en el readImage.\n");
         exit(EXIT_FAILURE);
     }
-    else if(pid == 0) /* Proceso hijo */
+    else if(pid == 0)
     {
-        /* scaleGray Call */
-        /* Piping to scaleGray
-                - bmpFileHeader
-                - bmpInfoHeader
-                - data
-        */
+        /* Proceso hijo */
+        int dupStatus;
 
-        //    char buffFH[25];
-        //    int newfd = dup(fdFH[WRITE]);
-
-        // sprintf(buffFH,"%d",newfd);
-
-
-        // //Calling execv with next step
-        // execv("./scaleGray",(char *[]){ buffFH, NULL});
-
-
-        printf("Llamo a el 3er proceso del pipe \n");
-    }
-    else /* Proceso padre*/
-    {
-
-        if( (pipe(fdFH) == -1) || (pipe(fdIH) == -1) || (pipe(fdData) == -1))
-        {  
-            perror("Error");
+        close(pipefd[WRITE]);
+        dupStatus = dup2(pipefd[READ], STDIN_FILENO);
+        if(dupStatus == -1)
+        {
+            perror("Dup2 Error: ");
             exit(EXIT_FAILURE);
         }
 
-        /* Obtengo los parametros de entrada */
-        int cflag,uflag,nflag;
+        execv("./scaleGray", (char *[]){NULL});
+
+        printf("Error al ejecutar el execv desde readImage.\n");
+        exit(EXIT_FAILURE);
+    }
+    else 
+    {
+        /* Proceso padre */
+        int cflag, uflag, nflag,bflag,i,j, rowSize;
+
+        FILE *fp = NULL;
         BITMAPFILEHEADER *bmpFileHeader = NULL;
         BITMAPINFOHEADER *bmpInfoHeader = NULL;
-        DATA *data;
-        FILE *fp;
+        DATA* data = NULL;
 
+        read(STDIN_FILENO, &cflag, sizeof(int));
+        read(STDIN_FILENO, &uflag, sizeof(int));
+        read(STDIN_FILENO, &nflag, sizeof(int));
+        read(STDIN_FILENO, &bflag, sizeof(int));
 
         bmpFileHeader = (BITMAPFILEHEADER*)malloc(sizeof(BITMAPFILEHEADER));
         bmpInfoHeader = (BITMAPINFOHEADER*)malloc(sizeof(BITMAPINFOHEADER));
         data = (DATA*)malloc(sizeof(DATA));
 
-        
-        int *pipeCount = atoi(argv[0]);
-        pipe(pipeCount);
-
-        close(pipeCount[WRITE]);
-        read(pipeCount[READ], &cflag, sizeof(cflag));
-
-        printf("    cflag: %i\n", cflag);
-        exit(0);
-        // cflag = atoi(argv[0]);
-        //uflag = atoi(argv[1]);
-        //nflag = atoi(argv[2]);
-
-        //printf("Proceso: %i, recibe -c %i -u %i -n %i\n",getpid(),cflag,uflag,nflag);
-        
-
         fp = readImageHeader(cflag, fp, bmpFileHeader, bmpInfoHeader);
         data->pixelData = readImageData(fp, bmpFileHeader, bmpInfoHeader);
+        
+        close(pipefd[READ]);
+        write(pipefd[WRITE], &cflag, sizeof(int));
+        write(pipefd[WRITE], &uflag, sizeof(int));
+        write(pipefd[WRITE], &nflag, sizeof(int));
+        write(pipefd[WRITE], &bflag, sizeof(int));
+        write(pipefd[WRITE], &(bmpInfoHeader->width), sizeof(unsigned long long));
+        write(pipefd[WRITE], &(bmpInfoHeader->height), sizeof(unsigned long long));
+        write(pipefd[WRITE], &(bmpFileHeader->offbits), sizeof(unsigned int));
 
-        close(fdFH[READ]);
-        // close(fdFH[READ]);
-        // close(fdData[READ]);
+        /* Writing image data in pipe*/
+        rowSize = bmpInfoHeader->width * 4;
 
-        write(fdFH[WRITE], &bmpFileHeader, sizeof(BITMAPFILEHEADER));
+        for(i=bmpInfoHeader->height-1;i>0;i--)
+        {
+            for(j=0;j<rowSize;j++)
+            {
+                write(pipefd[WRITE], &data->pixelData[i][j], sizeof(unsigned char));
+            }
+        }
 
-        close(fdFH[WRITE]);
-
-
-        waitpid(pid, &status,WUNTRACED);
+        wait(&pid);
         return 0;
     }
 }
 
+/*
+ * Descripcion: La funcion realiza una concatenacion para lograr el nombre correcto de la imagen, se intenta
+ *              abrir la imagen, si no es posible abrir la imagen se detiene el programa. Luego se llama a la
+ *              funcion que lee la cabecera del archivo 'ReadBMPFileHeader' y a la funcion que lee la informacion
+ *              de cabecera 'ReadBMPInfoHeader', ambas funciones se encuentran en el archivo 'bmp.c'. Se retorna
+ *              el puntero de la imagen que se logro abrir.
+ * 
+ * Entrada: Contador de imagenes 'imgCount', Puntero a un archivo 'fp', Puntero a la estructura BITMAPFILEHEADER 'bmpFileHeader',
+ *          Puntero a la estructura BITMAPINFOHEADER 'bmpInfoHeader'.
+ * 
+ * Salida: Puntero de la imagen que se logro abrir.
+ */ 
 FILE* readImageHeader(int imgCount, FILE* fp, BITMAPFILEHEADER *bmpFileHeader, BITMAPINFOHEADER *bmpInfoHeader)
 {
     char fileNumber[5];
@@ -114,7 +135,8 @@ FILE* readImageHeader(int imgCount, FILE* fp, BITMAPFILEHEADER *bmpFileHeader, B
      *   Por ahora solo leemos imagenes de 32 bpp con un headerSize de 124 bytes 
      */
 
-    if((fp = fopen(fileName,"rb")) == NULL)
+    fp = fopen(fileName,"rb");
+    if(fp == NULL)
     {
         printf("No se logro abrir el archivo: %s.\n", fileName);
         exit(EXIT_FAILURE);
@@ -122,18 +144,32 @@ FILE* readImageHeader(int imgCount, FILE* fp, BITMAPFILEHEADER *bmpFileHeader, B
     
     bmpFileHeader = ReadBMPFileHeader(fp, bmpFileHeader);
     bmpInfoHeader = ReadBMPInfoHeader(fp, bmpInfoHeader);
-
+    
     return fp;
 }
 
+/*
+ * Descripcion: La funcion primero realiza el calculo de el tamaño de las filas 'rowSize', luego este valor se multiplica
+ *              por la altura 'height' para obtener la cantidad total de bytes que posee la imagen. Luego se crea la matriz
+ *              de datos llamado 'data' mediante la funcion 'createBuffer'. Si es posible obtener memoria para los datos de
+ *              la imagen se pide memoria para crear el puntero a la estructura 'RGB' llamado 'pixel'. Mediante un 'fseek'
+ *              nos posicionamos en donde comienza la matriz de pixeles. Despues mediantes dos ciclos for recorremos la matriz
+ *              de datos de la imagen desde la esquina inferior izquierda hasta la esquina superior derecha, entonces se lee
+ *              el pixel mediante un 'fread' y los datos obtenidos se guardan en la matriz 'data'. Una vez completado este proceso
+ *              se retorna la matriz 'data'
+ * 
+ * Entrada: Puntero a la imagen 'fp', Puntero a la estructura BITMAPFILEHEADER 'bmpFileHeader', 
+ *          Puntero a la estructura BITMAPINFOHEADER 'bmpInfoHeader'.
+ * 
+ * Salida: Doble puntero a la matriz de datos llamado 'data'.
+ */
 unsigned char** readImageData(FILE *fp, BITMAPFILEHEADER *bmpFileHeader, BITMAPINFOHEADER *bmpInfoHeader)
 {
     unsigned char **data = NULL;
-    int rowSize, pixelArray;
+    int rowSize;
     RGB *pixel;
 
     rowSize = (((bmpInfoHeader->bitPerPixel * bmpInfoHeader->width) + 31) / 32) * 4;
-    pixelArray = rowSize * bmpInfoHeader->height;
 
     data = createBuffer(bmpInfoHeader->width, bmpInfoHeader->height, bmpInfoHeader->bitPerPixel);
 
@@ -166,6 +202,16 @@ unsigned char** readImageData(FILE *fp, BITMAPFILEHEADER *bmpFileHeader, BITMAPI
 
 }
 
+/*
+ * Descripcion: Esta funcion recibe los datos de altura, ancho y bits por pixel de la imagen para crear
+ *              una matriz que sea capaz de almacenar los datos de los pixeles de la imagen. Se pide 
+ *              memoria para crear la matriz de datos 'data', si no es posible crear la matriz se detiene el programa.
+ *              se retornar el puntero a la matriz de datos 'data'.
+ * 
+ * Entrada: Entero ancho 'width', Entero alto 'height', Entero bit por pixel 'bitPerPixel'.
+ * 
+ * Salida: Doble puntero de datos 'data'.
+ */
 unsigned char** createBuffer(int width, int height, int bitPerPixel)
 {
     unsigned char** data = NULL;
@@ -173,6 +219,7 @@ unsigned char** createBuffer(int width, int height, int bitPerPixel)
 
     rowSize = (((bitPerPixel * width) + 31) / 32) * 4;
     pixelArray = rowSize * height;
+
     data = (unsigned char**)malloc(sizeof(unsigned char*) * height);
 
     if(data != NULL)
@@ -191,7 +238,7 @@ unsigned char** createBuffer(int width, int height, int bitPerPixel)
     }
     else
     {
-        printf("No hay espacio para los datos de la imagen.\n");
+        perror("createBuffer => data pointer");
         exit(1);
     }
 }
