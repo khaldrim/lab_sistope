@@ -82,7 +82,7 @@ typedef struct _InputData
     int uflag;
     int nflag;
     int bflag;
-    
+    int imgCount;
 } INPUTDATA;
 
 #endif
