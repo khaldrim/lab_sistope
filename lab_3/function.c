@@ -5,7 +5,7 @@
 #include <pthread.h>
 #include "struct.h"
 #include "function.h"
-#include "pthread_barrier.h"
+//#include "pthread_barrier.h"
 
 //Recursos compartidos
 
@@ -17,30 +17,42 @@ DATA *data;
 BITMAPFILEHEADER *bmpFileHeader;
 BITMAPINFOHEADER *bmpInfoHeader;
 
-void *threadMain(void *input) 
-{
+void *threadMain(void *input)
+    int totalSize;
+    int totalData;
     INPUTDATA *inputData = (INPUTDATA*)input;
 
+    //Inicio de la lectura
     pthread_mutex_lock(&lock);
     if(lock_read == 0) {
+        lock_read = 1;
         data = (DATA*)malloc(sizeof(DATA));
         bmpFileHeader = (BITMAPFILEHEADER*)malloc(sizeof(BITMAPFILEHEADER));
         bmpInfoHeader = (BITMAPINFOHEADER*)malloc(sizeof(BITMAPINFOHEADER));
 
-        data->pixelData = readBMPImage(inputData->imgCount, bmpFileHeader, bmpInfoHeader);
-        lock_read++;
+        totalSize = bmpInfoHeader->width * bmpInfoHeader->height;
+        totalData = totalSize * 4;
+        data->pixelData  = readBMPImage(inputData->imgCount, bmpFileHeader, bmpInfoHeader);
+        initializeData(data, totalSize);
+
         printf("bitmap width: %llu\n", bmpInfoHeader->width);
     }
+
     pthread_mutex_unlock(&lock);
 
     //Barrera para esperar la lectura.
+    pthread_barrier_wait(&readImage);
+
+    //Inicio de la escala a grises
+
+
 
     return NULL;
 }
 
 
 int mainMenu(int cflag, int hflag, int uflag, int nflag, int bflag)
-{   
+{
     int imgCount = 0;
     INPUTDATA *inputData = (INPUTDATA*) malloc(sizeof(INPUTDATA));
 
@@ -51,13 +63,13 @@ int mainMenu(int cflag, int hflag, int uflag, int nflag, int bflag)
     inputData->bflag = bflag;
 
     pthread_t threadGroup[hflag];
-    
-    // printf("cflag=%d, hflag=%d,uflag=%d, nflag=%d, bflag=%d \n", inputData->cflag, inputData->hflag,inputData->uflag,inputData->nflag,inputData->bflag);
 
-    while(imgCount < cflag) 
+    // printf("cflag=%d, hflag=%d,uflag=%d, nflag=%d, bflag=%d \n", inputData->cflag, inputData->hflag,inputData->uflag,inputData->nflag,inputData->bflag);
+    pthread_barrier_init(&readImage, NULL, hflag);
+
+    while(imgCount < cflag)
     {
         int k;
-        pthread_barrier_init(&readImage, NULL, hflag);
         inputData->imgCount = imgCount;
 
         for(k = 0; k < hflag; k++) {
@@ -66,9 +78,6 @@ int mainMenu(int cflag, int hflag, int uflag, int nflag, int bflag)
                 return 1;
             }
         }
-
-        pthread_mutex_destroy(&lock);
-        pthread_barrier_destroy(&readImage);
 
         for(k = 0; k < hflag; k++) {
             if(pthread_join(threadGroup[k], NULL)) {
@@ -81,9 +90,10 @@ int mainMenu(int cflag, int hflag, int uflag, int nflag, int bflag)
         lock_read = 0;
     }
 
+    pthread_mutex_destroy(&lock);
+    pthread_barrier_destroy(&readImage);
     return 0;
 }
-
 
  unsigned char** readBMPImage(int imgCount, BITMAPFILEHEADER* bmpFileHeader, BITMAPINFOHEADER* bmpInfoHeader)
  {
@@ -111,12 +121,12 @@ int mainMenu(int cflag, int hflag, int uflag, int nflag, int bflag)
     pixelArray = rowSize * bmpInfoHeader->height;
 
     data = createBuffer(bmpInfoHeader->width, bmpInfoHeader->height, bmpInfoHeader->bitPerPixel);
-    
+
     if(data != NULL)
     {
         int i, j;
         pixel = (RGB*)malloc(sizeof(RGB));
-        
+
         fseek(fp, bmpFileHeader->offbits, SEEK_SET);
 
         for(i=bmpInfoHeader->height-1;i>0;i--)
@@ -172,3 +182,25 @@ int mainMenu(int cflag, int hflag, int uflag, int nflag, int bflag)
     }
 }
 
+DATA* initializeData(DATA *data, int totalSize)
+{
+    int k = 0;
+    data->grayData   = (unsigned int*)malloc(sizeof(unsigned int) * totalSize);
+    data->binaryData = (unsigned int*)malloc(sizeof(unsigned int) * totalSize);
+
+    for(k = 0;k < totalSize; k++)
+    {
+        data->grayData[k] = -1;
+        data->binaryData[k] = -1;
+    }
+
+    return data;
+}
+
+void grayData(DATA *data, int totalData)
+{
+    while(grayCounter < totalData)
+    {
+
+    }
+}

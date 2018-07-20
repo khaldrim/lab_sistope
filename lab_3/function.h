@@ -7,6 +7,8 @@
 int mainMenu(int cflag, int hflag, int uflag, int nflag, int bflag);
 unsigned char** readBMPImage(int imgCount, BITMAPFILEHEADER* bmpFileHeader, BITMAPINFOHEADER* bmpInfoHeader);
 unsigned char** createBuffer(int width, int height, int bitPerPixel);
+DATA* initializeData(DATA *data, int totalSize);
+void grayData(DATA *data, int totalData);
 
 //BMP file
 BITMAPFILEHEADER *ReadBMPFileHeader(FILE *fp, BITMAPFILEHEADER  *header);
