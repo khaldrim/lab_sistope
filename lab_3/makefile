@@ -2,9 +2,10 @@ CC=gcc
 route=
 
 all: main.o function.o bmp.o
-	$(CC) main.o function.o bmp.o -o main -Wall -I.
+	$(CC) main.o function.o bmp.o -o main -Wall -I. -pthread
 	rm main.o function.o bmp.o
-
+	clear
+	
 main.o: $(route)main.c
 	$(CC) -c $(route)main.c
 

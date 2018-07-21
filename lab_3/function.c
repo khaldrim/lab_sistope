@@ -5,21 +5,26 @@
 #include <pthread.h>
 #include "struct.h"
 #include "function.h"
-//#include "pthread_barrier.h"
+#include "pthread_barrier.h"
 
 //Recursos compartidos
+int lock_read    = 0;
+int matrix_counter = 0;
+int gray_counter_row = 0;
+int gray_counter_col = 4;
+int totalData;
+int totalSize;
 
-int lock_read = 0;
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
-pthread_barrier_t readImage;
+pthread_mutex_t lockGray = PTHREAD_MUTEX_INITIALIZER;
+pthread_barrier_t barrier;
 
 DATA *data;
 BITMAPFILEHEADER *bmpFileHeader;
 BITMAPINFOHEADER *bmpInfoHeader;
 
 void *threadMain(void *input)
-    int totalSize;
-    int totalData;
+{
     INPUTDATA *inputData = (INPUTDATA*)input;
 
     //Inicio de la lectura
@@ -29,24 +34,27 @@ void *threadMain(void *input)
         data = (DATA*)malloc(sizeof(DATA));
         bmpFileHeader = (BITMAPFILEHEADER*)malloc(sizeof(BITMAPFILEHEADER));
         bmpInfoHeader = (BITMAPINFOHEADER*)malloc(sizeof(BITMAPINFOHEADER));
-
+        data->pixelData  = readBMPImage(inputData->imgCount, bmpFileHeader, bmpInfoHeader);
+        
         totalSize = bmpInfoHeader->width * bmpInfoHeader->height;
         totalData = totalSize * 4;
-        data->pixelData  = readBMPImage(inputData->imgCount, bmpFileHeader, bmpInfoHeader);
-        initializeData(data, totalSize);
 
-        printf("bitmap width: %llu\n", bmpInfoHeader->width);
+        printf("bitmap width: %llu | bitmap height: %llu\n", bmpInfoHeader->width, bmpInfoHeader->height);
+        printf("totalSize: %i | totalData: %i\n", totalSize, totalData);
+        
+        initializeData(data, totalSize);
     }
 
     pthread_mutex_unlock(&lock);
-
-    //Barrera para esperar la lectura.
-    pthread_barrier_wait(&readImage);
+    pthread_barrier_wait(&barrier);
 
     //Inicio de la escala a grises
+    grayData(data, totalSize, bmpInfoHeader->height);
+    pthread_barrier_wait(&barrier);
 
-
-
+    //Inicio de binarizar la imagen
+    
+    printf("Fin de threadMain\n");
     return NULL;
 }
 
@@ -65,7 +73,7 @@ int mainMenu(int cflag, int hflag, int uflag, int nflag, int bflag)
     pthread_t threadGroup[hflag];
 
     // printf("cflag=%d, hflag=%d,uflag=%d, nflag=%d, bflag=%d \n", inputData->cflag, inputData->hflag,inputData->uflag,inputData->nflag,inputData->bflag);
-    pthread_barrier_init(&readImage, NULL, hflag);
+    pthread_barrier_init(&barrier, NULL, hflag);
 
     while(imgCount < cflag)
     {
@@ -91,7 +99,8 @@ int mainMenu(int cflag, int hflag, int uflag, int nflag, int bflag)
     }
 
     pthread_mutex_destroy(&lock);
-    pthread_barrier_destroy(&readImage);
+    pthread_mutex_destroy(&lockGray);
+    pthread_barrier_destroy(&barrier);
     return 0;
 }
 
@@ -129,9 +138,9 @@ int mainMenu(int cflag, int hflag, int uflag, int nflag, int bflag)
 
         fseek(fp, bmpFileHeader->offbits, SEEK_SET);
 
-        for(i=bmpInfoHeader->height-1;i>0;i--)
+        for(i=0;i<bmpInfoHeader->width;i++)
         {
-            for(j=0;j<rowSize;j+=4)
+            for(j=rowSize-1;j>0;j-=4)
             {
                 fread(pixel, sizeof(RGB), 1, fp);
                 data[i][j]   = pixel->blue;
@@ -140,6 +149,7 @@ int mainMenu(int cflag, int hflag, int uflag, int nflag, int bflag)
                 data[i][j+3] = pixel->alpha;
             }
         }
+
         fclose(fp);
         return data;
     }
@@ -155,10 +165,9 @@ int mainMenu(int cflag, int hflag, int uflag, int nflag, int bflag)
  unsigned char** createBuffer(int width, int height, int bitPerPixel)
 {
     unsigned char** data = NULL;
-    int rowSize, pixelArray, i;
+    int rowSize, i;
 
     rowSize = (((bitPerPixel * width) + 31) / 32) * 4;
-    pixelArray = rowSize * height;
     data = (unsigned char**)malloc(sizeof(unsigned char*) * height);
 
     if(data != NULL)
@@ -197,10 +206,48 @@ DATA* initializeData(DATA *data, int totalSize)
     return data;
 }
 
-void grayData(DATA *data, int totalData)
+void grayData(DATA *data, int totalData, int height)
 {
-    while(grayCounter < totalData)
-    {
+    int row = 0, col = 0, counter = 0;
+    unsigned char red, green, blue;
+    double scale;
 
+    while(matrix_counter < totalSize)
+    {
+        pthread_mutex_lock(&lockGray);
+        counter = matrix_counter;
+        row = gray_counter_row;
+        col = gray_counter_col;
+
+        if(col > (height*4))
+        {
+            row++;
+            col = 4;
+            gray_counter_row++;
+            gray_counter_col=0;
+        }
+        
+        gray_counter_col += 4;
+        matrix_counter++;
+
+        printf("counter: %i | row: %i | col: %i \n", counter, row, col);
+        pthread_mutex_unlock(&lockGray);
+
+
+        red   = data->pixelData[row][col-1];
+        green = data->pixelData[row][col-2];
+        blue  = data->pixelData[row][col-3];
+        
+        scale = (int)red*0.3 + (int)green*0.59 + (int)blue*0.11;
+        data->grayData[counter] = scale;
+        
+        printf("scale: %f | counter: %i |\n", scale, counter);
     }
+
+    printf("fin escala de grises\n");
+}
+
+void binaryData(DATA *data, int totalData)
+{
+
 }
