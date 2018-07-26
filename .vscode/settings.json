@@ -6,6 +6,7 @@
         "stdint.h": "c",
         "string.h": "c",
         "function.h": "c",
-        "memory": "c"
+        "memory": "c",
+        "iterator": "c"
     }
 }

@@ -8,10 +8,12 @@
 #include "pthread_barrier.h"
 
 //Recursos compartidos
-int lock_read    = 0;
-int matrix_counter = 0;
+int lock_read        = 0;
+int lock_gray        = 0;
+int lock_bin         = 0;
+int matrix_counter   = 0;
 int gray_counter_row = 0;
-int gray_counter_col = 4;
+int gray_counter_col = 0;
 int totalData;
 int totalSize;
 
@@ -49,9 +51,23 @@ void *threadMain(void *input)
     pthread_barrier_wait(&barrier);
 
     //Inicio de la escala a grises
-    grayData(data, totalSize, bmpInfoHeader->height);
+    grayData(data, bmpInfoHeader->height, bmpInfoHeader->width);
     pthread_barrier_wait(&barrier);
 
+    pthread_mutex_lock(&lock);
+    if(lock_bin == 0)
+    {
+        lock_bin = 1;
+        int valor = 0;
+        valor = checkPixelData(data,bmpInfoHeader->width,bmpInfoHeader->height);
+        if(valor == -1){
+            printf("error en escalar\n");
+        }
+        else{
+            printf("tamo tranquilo'\n");
+        }
+    }
+    pthread_mutex_unlock(&lock);
     //Inicio de binarizar la imagen
     
     printf("Fin de threadMain\n");
@@ -96,6 +112,12 @@ int mainMenu(int cflag, int hflag, int uflag, int nflag, int bflag)
 
         imgCount++;
         lock_read = 0;
+        lock_gray = 0;
+        lock_bin  = 0;
+        matrix_counter = 0;
+        gray_counter_col = 0;
+        gray_counter_row = 0;
+
     }
 
     pthread_mutex_destroy(&lock);
@@ -206,42 +228,51 @@ DATA* initializeData(DATA *data, int totalSize)
     return data;
 }
 
-void grayData(DATA *data, int totalData, int height)
+void grayData(DATA *data, int height, int width)
 {
     int row = 0, col = 0, counter = 0;
     unsigned char red, green, blue;
     double scale;
 
-    while(matrix_counter < totalSize)
+    while(lock_gray != 1)
     {
-        pthread_mutex_lock(&lockGray);
-        counter = matrix_counter;
+        pthread_mutex_lock(&lock);
+        if(gray_counter_row < width)
+        {
+            gray_counter_col += 4;
+            if(gray_counter_col > (height*4))
+            {
+                gray_counter_col = 4;
+                gray_counter_row++;
+            }
+
+            matrix_counter++; 
+        }
+        pthread_mutex_unlock(&lock);
+
         row = gray_counter_row;
         col = gray_counter_col;
+        counter = matrix_counter;
 
-        if(col > (height*4))
+        if(counter >= totalSize)
+            lock_gray = 1;
+
+        if(lock_gray != 1)
         {
-            row++;
-            col = 4;
-            gray_counter_row++;
-            gray_counter_col=0;
+            if(row < width && col <= (height*4))
+            {
+                red   = data->pixelData[row][col-1];
+                green = data->pixelData[row][col-2];
+                blue  = data->pixelData[row][col-3];
+                
+                scale = (int)red*0.3 + (int)green*0.59 + (int)blue*0.11;
+                data->grayData[counter] = scale;
+                
+                
+            }
         }
-        
-        gray_counter_col += 4;
-        matrix_counter++;
 
-        printf("counter: %i | row: %i | col: %i \n", counter, row, col);
-        pthread_mutex_unlock(&lockGray);
-
-
-        red   = data->pixelData[row][col-1];
-        green = data->pixelData[row][col-2];
-        blue  = data->pixelData[row][col-3];
-        
-        scale = (int)red*0.3 + (int)green*0.59 + (int)blue*0.11;
-        data->grayData[counter] = scale;
-        
-        printf("scale: %f | counter: %i |\n", scale, counter);
+        printf("row: %i | col: %i | counter: %i | matrix_counter: %i | gray_row: %i | gray_col: %i\n", row, col, counter,matrix_counter, gray_counter_row, gray_counter_col);
     }
 
     printf("fin escala de grises\n");
@@ -250,4 +281,23 @@ void grayData(DATA *data, int totalData, int height)
 void binaryData(DATA *data, int totalData)
 {
 
+}
+
+int checkPixelData(DATA *data, int width, int height)
+{
+    int i = 0, valor;
+    for(i = 0;i < (height*width);i++)
+    {
+        valor = data->grayData[i];
+        if(valor == -1)
+        {
+            // printf("error culiao\n");
+            return 1;
+        }
+
+        // printf("asd: %i %i\n",valor, i);
+
+    }
+
+    return 0;
 }

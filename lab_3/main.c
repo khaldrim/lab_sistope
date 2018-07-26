@@ -42,7 +42,7 @@ int main(int argc, char** argv)
                 break;
             case 'h':
                 sscanf(optarg,"%d",&hflag);
-                if(hflag <= 0)
+                if(hflag <= 0) /* Preguntar si valor puede ser igual a 0 */
                 {
                     printf("La bandera -h no puede tener un valor igual o menor a cero.\n");
                     exit(1);
