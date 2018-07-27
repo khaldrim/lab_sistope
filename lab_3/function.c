@@ -17,7 +17,7 @@ int lock_check         = 0;
 //escalar a grises
 int matrix_counter     = 0;
 int gray_counter_row   = 0;
-int gray_counter_col   = 0;
+int gray_counter_col   = -1;
 
 //binarizar
 int bin_counter        = -1;
@@ -49,52 +49,51 @@ void *threadMain(void *input)
         totalSize = bmpInfoHeader->width * bmpInfoHeader->height;
         totalData = totalSize * 4;
 
-        printf("bitmap width: %llu | bitmap height: %llu\n", bmpInfoHeader->width, bmpInfoHeader->height);
-        printf("totalSize: %i | totalData: %i\n", totalSize, totalData);
+        gray_counter_row = bmpInfoHeader->height - 1;
         
         initializeData(data, totalSize);
     }
-
     pthread_mutex_unlock(&lock);
+    
     pthread_barrier_wait(&barrier);
 
     //Inicio de la escala a grises
     grayData(data, bmpInfoHeader->height, bmpInfoHeader->width);
     pthread_barrier_wait(&barrier);
 
-    pthread_mutex_lock(&lock);
-    if(lock_bin == 0)
-    {
-        lock_bin = 1;
-        int valor = 0;
-        valor = checkPixelData(data,bmpInfoHeader->width,bmpInfoHeader->height);
-        if(valor == -1){
-            printf("error en escalar\n");
-        }
-        else{
-            printf("tamo tranquilo'\n");
-        }
-    }
-    pthread_mutex_unlock(&lock);
+    // pthread_mutex_lock(&lock);
+    // if(lock_bin == 0)
+    // {
+    //     lock_bin = 1;
+    //     int valor = 0;
+    //     valor = checkPixelData(data,bmpInfoHeader->width,bmpInfoHeader->height);
+    //     if(valor == -1){
+    //         printf("error en escalar\n");
+    //     }
+    //     else{
+    //         printf("tamo tranquilo'\n");
+    //     }
+    // }
+    // pthread_mutex_unlock(&lock);
     pthread_barrier_wait(&barrier);
     //Inicio de binarizar la imagen
     binaryData(data,inputData,bmpInfoHeader->width,bmpInfoHeader->height);
     pthread_barrier_wait(&barrier);
 
-    pthread_mutex_lock(&lock);
-    if(lock_check == 0)
-    {
-        lock_check = 1;
-        int valor = 0;
-        valor = checkBinData(data,bmpInfoHeader->width,bmpInfoHeader->height);
-        if(valor == -1){
-            printf("error en binarizar\n");
-        }
-        else{
-            printf("tamo tranquilo'\n");
-        }
-    }
-    pthread_mutex_unlock(&lock);
+    // pthread_mutex_lock(&lock);
+    // if(lock_check == 0)
+    // {
+    //     lock_check = 1;
+    //     int valor = 0;
+    //     valor = checkBinData(data,bmpInfoHeader->width,bmpInfoHeader->height);
+    //     if(valor == -1){
+    //         printf("error en binarizar\n");
+    //     }
+    //     else{
+    //         printf("tamo tranquilo'\n");
+    //     }
+    // }
+    // pthread_mutex_unlock(&lock);
 
 
     printf("Fin de threadMain\n");
@@ -177,10 +176,13 @@ int mainMenu(int cflag, int hflag, int uflag, int nflag, int bflag)
     bmpFileHeader = ReadBMPFileHeader(fp, bmpFileHeader);
     bmpInfoHeader = ReadBMPInfoHeader(fp, bmpInfoHeader);
 
+    printf("bmpFile: %i\n",bmpFileHeader->size);
+    printf("size: %i\n", bmpInfoHeader->size);
+
     colSize = bmpInfoHeader->width * 4;
     pixelArray = colSize * bmpInfoHeader->height;
 
-    data = createBuffer(bmpInfoHeader->width, bmpInfoHeader->height, bmpInfoHeader->bitPerPixel);
+    data = createBuffer(bmpInfoHeader->width, bmpInfoHeader->height);
 
     if(data != NULL)
     {
@@ -189,11 +191,12 @@ int mainMenu(int cflag, int hflag, int uflag, int nflag, int bflag)
 
         fseek(fp, bmpFileHeader->offbits, SEEK_SET);
 
-        for(i=bmpInfoHeader->width-1;i>0;i--)
+        for(i=bmpInfoHeader->height;i>0;i--)
         {
-            for(j=0; j< colSize; j+=4)
+            for(j=0;j < colSize; j+=4)
             {
                 fread(pixel, sizeof(RGB), 1, fp);
+                
                 data[i][j]   = pixel->blue;
                 data[i][j+1] = pixel->green;
                 data[i][j+2] = pixel->red;
@@ -213,7 +216,7 @@ int mainMenu(int cflag, int hflag, int uflag, int nflag, int bflag)
     return NULL;
  }
 
- unsigned char** createBuffer(int width, int height, int bitPerPixel)
+ unsigned char** createBuffer(int width, int height)
 {
     unsigned char** data = NULL;
     int colSize, i;
@@ -266,29 +269,31 @@ void grayData(DATA *data, int height, int width)
     while(lock_gray != 1)
     {
         pthread_mutex_lock(&lock);
-        if(gray_counter_row < width)
+        if(gray_counter_row >= 0)
         {
             gray_counter_col += 4;
-            if(gray_counter_col > (height*4))
+            if(gray_counter_col > (width*4))
             {
-                gray_counter_col = 4;
-                gray_counter_row++;
+                gray_counter_col = 3;
+                gray_counter_row--;
             }
 
             matrix_counter++; 
         }
-        pthread_mutex_unlock(&lock);
+
 
         row = gray_counter_row;
         col = gray_counter_col;
         counter = matrix_counter;
+        pthread_mutex_unlock(&lock);
+
 
         if(counter >= totalSize)
             lock_gray = 1;
 
         if(lock_gray != 1)
         {
-            if(row < width && col <= (height*4))
+            if(row >= 0 && col <= (width*4))
             {
                 red   = data->pixelData[row][col-1];
                 green = data->pixelData[row][col-2];
@@ -296,15 +301,11 @@ void grayData(DATA *data, int height, int width)
                 
                 scale = (int)red*0.3 + (int)green*0.59 + (int)blue*0.11;
                 data->grayData[counter] = scale;
-                
-                
             }
         }
-
-        // printf("row: %i | col: %i | counter: %i | matrix_counter: %i | gray_row: %i | gray_col: %i\n", row, col, counter,matrix_counter, gray_counter_row, gray_counter_col);
     }
 
-    // printf("fin escala de grises\n");
+    printf("fin escala de grises\n");
 }
 
 void binaryData(DATA *data, INPUTDATA* inputData, int width, int height)
@@ -329,8 +330,6 @@ void binaryData(DATA *data, INPUTDATA* inputData, int width, int height)
             {
                 data->binaryData[counter] = 0;
             }
-
-            // printf("counter: %i | valor: %i\n", counter, data->binaryData[counter]);
         }
         else 
         {
@@ -382,7 +381,7 @@ void writeBinaryImage(DATA* data, INPUTDATA* inputData, BITMAPFILEHEADER* bmpFil
     FILE *fp = NULL;
 
     char fileNumber[5];
-    char fileName[35] = "imagenes/resultado_imagen_";
+    char fileName[50] = "imagenes/resultados/resultado_imagen_";
 
     sprintf(fileNumber, "%d", inputData->imgCount);
     strcat(fileName, fileNumber);

@@ -6,7 +6,7 @@
 //function file
 int mainMenu(int cflag, int hflag, int uflag, int nflag, int bflag);
 unsigned char** readBMPImage(int imgCount, BITMAPFILEHEADER* bmpFileHeader, BITMAPINFOHEADER* bmpInfoHeader);
-unsigned char** createBuffer(int width, int height, int bitPerPixel);
+unsigned char** createBuffer(int width, int height);
 DATA* initializeData(DATA *data, int totalSize);
 void grayData(DATA *data, int height, int width);
 int checkPixelData(DATA *data, int width, int height);
