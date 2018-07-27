@@ -8,12 +8,20 @@
 #include "pthread_barrier.h"
 
 //Recursos compartidos
-int lock_read        = 0;
-int lock_gray        = 0;
-int lock_bin         = 0;
-int matrix_counter   = 0;
-int gray_counter_row = 0;
-int gray_counter_col = 0;
+int lock_read          = 0;
+int lock_gray          = 0;
+int lock_bin           = 0;
+
+int lock_check         = 0;
+
+//escalar a grises
+int matrix_counter     = 0;
+int gray_counter_row   = 0;
+int gray_counter_col   = 0;
+
+//binarizar
+int bin_counter        = -1;
+
 int totalData;
 int totalSize;
 
@@ -68,8 +76,27 @@ void *threadMain(void *input)
         }
     }
     pthread_mutex_unlock(&lock);
+    pthread_barrier_wait(&barrier);
     //Inicio de binarizar la imagen
-    
+    binaryData(data,inputData,bmpInfoHeader->width,bmpInfoHeader->height);
+    pthread_barrier_wait(&barrier);
+
+    pthread_mutex_lock(&lock);
+    if(lock_check == 0)
+    {
+        lock_check = 1;
+        int valor = 0;
+        valor = checkBinData(data,bmpInfoHeader->width,bmpInfoHeader->height);
+        if(valor == -1){
+            printf("error en binarizar\n");
+        }
+        else{
+            printf("tamo tranquilo'\n");
+        }
+    }
+    pthread_mutex_unlock(&lock);
+
+
     printf("Fin de threadMain\n");
     return NULL;
 }
@@ -87,8 +114,6 @@ int mainMenu(int cflag, int hflag, int uflag, int nflag, int bflag)
     inputData->bflag = bflag;
 
     pthread_t threadGroup[hflag];
-
-    // printf("cflag=%d, hflag=%d,uflag=%d, nflag=%d, bflag=%d \n", inputData->cflag, inputData->hflag,inputData->uflag,inputData->nflag,inputData->bflag);
     pthread_barrier_init(&barrier, NULL, hflag);
 
     while(imgCount < cflag)
@@ -118,11 +143,15 @@ int mainMenu(int cflag, int hflag, int uflag, int nflag, int bflag)
         gray_counter_col = 0;
         gray_counter_row = 0;
 
+        printf("antes de imprimir\n");
+        writeBinaryImage(data,inputData,bmpFileHeader,bmpInfoHeader);
+        printf("despues de imprimir\n");
     }
 
     pthread_mutex_destroy(&lock);
     pthread_mutex_destroy(&lockGray);
     pthread_barrier_destroy(&barrier);
+
     return 0;
 }
 
@@ -130,7 +159,7 @@ int mainMenu(int cflag, int hflag, int uflag, int nflag, int bflag)
  {
     FILE *fp;
     unsigned char **data = NULL;
-    int rowSize, pixelArray;
+    int colSize, pixelArray;
     RGB *pixel;
     char fileNumber[5];
     char fileName[30] = "imagenes/imagen_";
@@ -148,8 +177,8 @@ int mainMenu(int cflag, int hflag, int uflag, int nflag, int bflag)
     bmpFileHeader = ReadBMPFileHeader(fp, bmpFileHeader);
     bmpInfoHeader = ReadBMPInfoHeader(fp, bmpInfoHeader);
 
-    rowSize = (((bmpInfoHeader->bitPerPixel * bmpInfoHeader->width) + 31) / 32) * 4;
-    pixelArray = rowSize * bmpInfoHeader->height;
+    colSize = bmpInfoHeader->width * 4;
+    pixelArray = colSize * bmpInfoHeader->height;
 
     data = createBuffer(bmpInfoHeader->width, bmpInfoHeader->height, bmpInfoHeader->bitPerPixel);
 
@@ -160,9 +189,9 @@ int mainMenu(int cflag, int hflag, int uflag, int nflag, int bflag)
 
         fseek(fp, bmpFileHeader->offbits, SEEK_SET);
 
-        for(i=0;i<bmpInfoHeader->width;i++)
+        for(i=bmpInfoHeader->width-1;i>0;i--)
         {
-            for(j=rowSize-1;j>0;j-=4)
+            for(j=0; j< colSize; j+=4)
             {
                 fread(pixel, sizeof(RGB), 1, fp);
                 data[i][j]   = pixel->blue;
@@ -187,16 +216,16 @@ int mainMenu(int cflag, int hflag, int uflag, int nflag, int bflag)
  unsigned char** createBuffer(int width, int height, int bitPerPixel)
 {
     unsigned char** data = NULL;
-    int rowSize, i;
+    int colSize, i;
 
-    rowSize = (((bitPerPixel * width) + 31) / 32) * 4;
-    data = (unsigned char**)malloc(sizeof(unsigned char*) * height);
+    colSize = width * 4;
+    data = (unsigned char**)malloc(sizeof(unsigned char*) * colSize);
 
     if(data != NULL)
     {
-        for(i=0; i< height; i++)
+        for(i=0; i< colSize; i++)
         {
-            data[i] = (unsigned char*)malloc(sizeof(unsigned char) * rowSize);
+            data[i] = (unsigned char*)malloc(sizeof(unsigned char) * height);
             if(data[i] == NULL)
             {
                 printf("No existe espacio para asignar memoria a las filas de la matriz.\n");
@@ -272,15 +301,44 @@ void grayData(DATA *data, int height, int width)
             }
         }
 
-        printf("row: %i | col: %i | counter: %i | matrix_counter: %i | gray_row: %i | gray_col: %i\n", row, col, counter,matrix_counter, gray_counter_row, gray_counter_col);
+        // printf("row: %i | col: %i | counter: %i | matrix_counter: %i | gray_row: %i | gray_col: %i\n", row, col, counter,matrix_counter, gray_counter_row, gray_counter_col);
     }
 
-    printf("fin escala de grises\n");
+    // printf("fin escala de grises\n");
 }
 
-void binaryData(DATA *data, int totalData)
+void binaryData(DATA *data, INPUTDATA* inputData, int width, int height)
 {
+    int size = 0, counter = 0, valor = 0;
 
+    while(lock_bin != 1)
+    {
+        pthread_mutex_lock(&lock);
+        bin_counter++;
+        counter = bin_counter;
+        pthread_mutex_unlock(&lock);
+
+        if(counter < totalSize)
+        {
+            valor = data->grayData[counter];
+            if(valor > inputData->uflag)
+            {
+                data->binaryData[counter] = 1;
+            }
+            else
+            {
+                data->binaryData[counter] = 0;
+            }
+
+            // printf("counter: %i | valor: %i\n", counter, data->binaryData[counter]);
+        }
+        else 
+        {
+            pthread_mutex_lock(&lock);
+            lock_bin = 1;
+            pthread_mutex_unlock(&lock);
+        }
+    }
 }
 
 int checkPixelData(DATA *data, int width, int height)
@@ -300,4 +358,106 @@ int checkPixelData(DATA *data, int width, int height)
     }
 
     return 0;
+}
+
+int checkBinData(DATA *data, int width, int height)
+{
+    int i = 0, valor;
+    for(i = 0;i < (height*width);i++)
+    {
+        valor = data->binaryData[i];
+        if(valor == -1)
+        {
+            // printf("error culiao\n");
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+
+void writeBinaryImage(DATA* data, INPUTDATA* inputData, BITMAPFILEHEADER* bmpFileHeader, BITMAPINFOHEADER* bmpInfoHeader)
+{
+    FILE *fp = NULL;
+
+    char fileNumber[5];
+    char fileName[35] = "imagenes/resultado_imagen_";
+
+    sprintf(fileNumber, "%d", inputData->imgCount);
+    strcat(fileName, fileNumber);
+    strcat(fileName, ".bmp");
+
+    if((fp=fopen(fileName, "wb")) == NULL)
+    {
+        printf("No se logro abrir el archivo: %s.\n", fileName);
+        exit(1);   
+    }
+
+    /* FILE HEADER */
+    fwrite(&bmpFileHeader->type, 2, 1, fp);
+    fwrite(&bmpFileHeader->size, 4, 1, fp);
+    fwrite(&bmpFileHeader->reserved1, 2, 1, fp);
+    fwrite(&bmpFileHeader->reserved2, 2, 1, fp);
+    fwrite(&bmpFileHeader->offbits, 4, 1, fp);
+
+    /* INFO HEADER */
+    fwrite(&bmpInfoHeader->size, 4, 1, fp);
+    fwrite(&bmpInfoHeader->width, 4, 1, fp);
+    fwrite(&bmpInfoHeader->height, 4, 1, fp);
+    fwrite(&bmpInfoHeader->planes, 2, 1, fp);
+    fwrite(&bmpInfoHeader->bitPerPixel, 2, 1, fp);
+    fwrite(&bmpInfoHeader->compression, 4, 1, fp);
+    fwrite(&bmpInfoHeader->sizeImage, 4, 1, fp);
+    fwrite(&bmpInfoHeader->xPelsPerMeter, 8, 1, fp);
+    fwrite(&bmpInfoHeader->yPelsperMeter, 8, 1, fp);
+    fwrite(&bmpInfoHeader->used, 4, 1, fp);
+    fwrite(&bmpInfoHeader->important, 4, 1, fp);
+    fwrite(&bmpInfoHeader->redMask, 4, 1, fp);
+    fwrite(&bmpInfoHeader->greenMask, 4, 1, fp);
+    fwrite(&bmpInfoHeader->blueMask, 4, 1, fp);
+    fwrite(&bmpInfoHeader->alphaMask, 4, 1, fp);
+    fwrite(&bmpInfoHeader->csType, 4, 1, fp);
+    fwrite(&bmpInfoHeader->ciexyzXRed, 4, 1, fp);
+    fwrite(&bmpInfoHeader->ciexyzYRed, 4, 1, fp);
+    fwrite(&bmpInfoHeader->ciexyzZRed, 4, 1, fp);
+    fwrite(&bmpInfoHeader->ciexyzXGreen, 4, 1, fp);
+    fwrite(&bmpInfoHeader->ciexyzYGreen, 4, 1, fp);
+    fwrite(&bmpInfoHeader->ciexyzZGreen, 4, 1, fp);
+    fwrite(&bmpInfoHeader->ciexyzXBlue, 4, 1, fp);
+    fwrite(&bmpInfoHeader->ciexyzYBlue, 4, 1, fp);
+    fwrite(&bmpInfoHeader->ciexyzZBlue, 4, 1, fp);
+    fwrite(&bmpInfoHeader->gammaRed, 4, 1, fp);
+    fwrite(&bmpInfoHeader->gammaGreen, 4, 1, fp);
+    fwrite(&bmpInfoHeader->gammaBlue, 4, 1, fp);
+    fwrite(&bmpInfoHeader->intent, 4, 1, fp);
+    fwrite(&bmpInfoHeader->profileData, 4, 1, fp);
+    fwrite(&bmpInfoHeader->profileSize, 4, 1, fp);
+    fwrite(&bmpInfoHeader->reserved, 4, 1, fp);
+
+    RGB* pixel = (RGB*)malloc(sizeof(RGB));
+    int k=0;
+    while(k < totalSize)
+    {
+        if(data->binaryData[k] == 1)
+        {
+            
+            pixel->blue = 255;
+            pixel->green = 255;
+            pixel->red = 255;
+            pixel->alpha = 255;
+            fwrite(pixel, sizeof(RGB), 1, fp);
+        }
+        else
+        {
+            pixel->blue = 0;
+            pixel->green = 0;
+            pixel->red = 0;
+            pixel->alpha = 255;
+            fwrite(pixel, sizeof(RGB), 1, fp);
+        }
+
+        k++;
+    }    
+    fclose(fp);
 }

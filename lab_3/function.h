@@ -10,6 +10,9 @@ unsigned char** createBuffer(int width, int height, int bitPerPixel);
 DATA* initializeData(DATA *data, int totalSize);
 void grayData(DATA *data, int height, int width);
 int checkPixelData(DATA *data, int width, int height);
+void binaryData(DATA *data, INPUTDATA* inputData, int width, int height);
+int checkBinData(DATA *data, int width, int height);
+void writeBinaryImage(DATA* data, INPUTDATA* inputData, BITMAPFILEHEADER* bmpFileHeader, BITMAPINFOHEADER* bmpInfoHeader);
 
 //BMP file
 BITMAPFILEHEADER *ReadBMPFileHeader(FILE *fp, BITMAPFILEHEADER  *header);
