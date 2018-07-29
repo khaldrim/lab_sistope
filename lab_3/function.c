@@ -10,14 +10,15 @@
 //Recursos compartidos
 int lock_read          = 0;
 int lock_gray          = 0;
+int lock_gray_loop     = 0;
 int lock_bin           = 0;
 
 int lock_check         = 0;
 
 //escalar a grises
-int matrix_counter     = 0;
-int gray_counter_row   = 0;
-int gray_counter_col   = -1;
+int matrix_counter;
+int gray_counter_row;
+int gray_counter_col;
 
 //binarizar
 int bin_counter        = -1;
@@ -26,6 +27,11 @@ int totalData;
 int totalSize;
 
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+
+pthread_mutex_t lock_row = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t lock_col = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t lock_matrix = PTHREAD_MUTEX_INITIALIZER;
+
 pthread_mutex_t lockGray = PTHREAD_MUTEX_INITIALIZER;
 pthread_barrier_t barrier;
 
@@ -54,49 +60,27 @@ void *threadMain(void *input)
         initializeData(data, totalSize);
     }
     pthread_mutex_unlock(&lock);
-    
     pthread_barrier_wait(&barrier);
+
+    //Preparando escala de grises
+    pthread_mutex_lock(&lock);
+    if(lock_gray != -1){
+        lock_gray = 1;
+        gray_counter_row = bmpInfoHeader->height - 1;
+        gray_counter_col = -1;
+        matrix_counter = 0;
+    }
+    pthread_mutex_unlock(&lock);
 
     //Inicio de la escala a grises
     grayData(data, bmpInfoHeader->height, bmpInfoHeader->width);
     pthread_barrier_wait(&barrier);
-
-    // pthread_mutex_lock(&lock);
-    // if(lock_bin == 0)
-    // {
-    //     lock_bin = 1;
-    //     int valor = 0;
-    //     valor = checkPixelData(data,bmpInfoHeader->width,bmpInfoHeader->height);
-    //     if(valor == -1){
-    //         printf("error en escalar\n");
-    //     }
-    //     else{
-    //         printf("tamo tranquilo'\n");
-    //     }
-    // }
-    // pthread_mutex_unlock(&lock);
-    pthread_barrier_wait(&barrier);
+    
     //Inicio de binarizar la imagen
     binaryData(data,inputData,bmpInfoHeader->width,bmpInfoHeader->height);
     pthread_barrier_wait(&barrier);
 
-    // pthread_mutex_lock(&lock);
-    // if(lock_check == 0)
-    // {
-    //     lock_check = 1;
-    //     int valor = 0;
-    //     valor = checkBinData(data,bmpInfoHeader->width,bmpInfoHeader->height);
-    //     if(valor == -1){
-    //         printf("error en binarizar\n");
-    //     }
-    //     else{
-    //         printf("tamo tranquilo'\n");
-    //     }
-    // }
-    // pthread_mutex_unlock(&lock);
-
-
-    printf("Fin de threadMain\n");
+    // printf("Fin de threadMain\n");
     return NULL;
 }
 
@@ -148,6 +132,9 @@ int mainMenu(int cflag, int hflag, int uflag, int nflag, int bflag)
     }
 
     pthread_mutex_destroy(&lock);
+    pthread_mutex_destroy(&lock_row);
+    pthread_mutex_destroy(&lock_col);
+    pthread_mutex_destroy(&lock_matrix);
     pthread_mutex_destroy(&lockGray);
     pthread_barrier_destroy(&barrier);
 
@@ -180,7 +167,7 @@ int mainMenu(int cflag, int hflag, int uflag, int nflag, int bflag)
     printf("size: %i\n", bmpInfoHeader->size);
 
     colSize = bmpInfoHeader->width * 4;
-    pixelArray = colSize * bmpInfoHeader->height;
+    // pixelArray = colSize * bmpInfoHeader->height;
 
     data = createBuffer(bmpInfoHeader->width, bmpInfoHeader->height);
 
@@ -191,9 +178,9 @@ int mainMenu(int cflag, int hflag, int uflag, int nflag, int bflag)
 
         fseek(fp, bmpFileHeader->offbits, SEEK_SET);
 
-        for(i=bmpInfoHeader->height;i>0;i--)
+        for(i = bmpInfoHeader->height-1; i >= 0; i--)
         {
-            for(j=0;j < colSize; j+=4)
+            for(j=0; j<colSize ; j+=4)
             {
                 fread(pixel, sizeof(RGB), 1, fp);
                 
@@ -222,13 +209,14 @@ int mainMenu(int cflag, int hflag, int uflag, int nflag, int bflag)
     int colSize, i;
 
     colSize = width * 4;
-    data = (unsigned char**)malloc(sizeof(unsigned char*) * colSize);
+
+    data = (unsigned char**)malloc(sizeof(unsigned char*) * height);
 
     if(data != NULL)
     {
-        for(i=0; i< colSize; i++)
+        for(i=0; i < height; i++)
         {
-            data[i] = (unsigned char*)malloc(sizeof(unsigned char) * height);
+            data[i] = (unsigned char*)malloc(sizeof(unsigned char) * colSize);
             if(data[i] == NULL)
             {
                 printf("No existe espacio para asignar memoria a las filas de la matriz.\n");
@@ -263,35 +251,85 @@ DATA* initializeData(DATA *data, int totalSize)
 void grayData(DATA *data, int height, int width)
 {
     int row = 0, col = 0, counter = 0;
+    int sizeCol = width*4;
     unsigned char red, green, blue;
     double scale;
 
-    while(lock_gray != 1)
-    {
+    while(lock_gray_loop != 1){
+        
         pthread_mutex_lock(&lock);
-        if(gray_counter_row >= 0)
-        {
+        if(gray_counter_row >= 0){
             gray_counter_col += 4;
-            if(gray_counter_col > (width*4))
-            {
+            if(gray_counter_col > (width*4)){
                 gray_counter_col = 3;
                 gray_counter_row--;
             }
 
             matrix_counter++; 
+        } else {
+            lock_gray_loop = 1;
         }
-
 
         row = gray_counter_row;
         col = gray_counter_col;
         counter = matrix_counter;
+
+        printf("row: %i | col: %i | counter: %i \n",gray_counter_row,gray_counter_col,matrix_counter);
         pthread_mutex_unlock(&lock);
 
+        // pthread_mutex_lock(&lock_row);
+        // if(gray_counter_row >= 0)
+        //     row = gray_counter_row;
+        // pthread_mutex_unlock(&lock_row);
 
-        if(counter >= totalSize)
-            lock_gray = 1;
+        // pthread_mutex_lock(&lock_col);
+        // if(gray_counter_col > (width*4))
+        // {
+        //     gray_counter_col = 0;
+        //     gray_counter_row--;
+        
+        //     gray_counter_col += 4;
+        //     col = gray_counter_col;
+        // }
+        // pthread_mutex_unlock(&lock_col);
 
-        if(lock_gray != 1)
+        // pthread_mutex_lock(&lock_matrix);
+        // if(matrix_counter < totalSize)
+        //     matrix_counter++;
+        // else
+        //     lock_gray = 1;
+        
+        // counter = matrix_counter;
+        // pthread_mutex_unlock(&lock_matrix);
+
+
+        // pthread_mutex_lock(&lock);
+        // if(gray_counter_row > -1) {
+        //     gray_counter_col++;
+
+        // } else {
+        //     gray_counter_col = 0;
+        //     gray_counter_row--;
+        // }
+
+        // if(gray_counter_col > 4)
+        //     lock_gray = 1;
+
+        // if(lock_gray != 1 && gray_counter_row > -1 && gray_counter_col < sizeCol)
+        //     matrix_counter++;
+        
+        // row = gray_counter_row;
+        // col = gray_counter_col;
+        // counter = matrix_counter;
+        
+        // pthread_mutex_unlock(&lock);
+
+
+
+        // if(counter >= totalSize)
+        //     lock_gray = 1;
+
+        if(lock_gray_loop != 1)
         {
             if(row >= 0 && col <= (width*4))
             {
@@ -301,7 +339,9 @@ void grayData(DATA *data, int height, int width)
                 
                 scale = (int)red*0.3 + (int)green*0.59 + (int)blue*0.11;
                 data->grayData[counter] = scale;
+
             }
+
         }
     }
 
