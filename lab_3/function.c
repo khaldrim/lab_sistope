@@ -8,12 +8,13 @@
 #include "pthread_barrier.h"
 
 //Recursos compartidos
-int lock_read          = 0;
-int lock_gray          = 0;
-int lock_gray_loop     = 0;
-int lock_bin           = 0;
-
-int lock_check         = 0;
+int lock_read           = 0;
+int lock_gray           = 0;
+int lock_gray_loop      = 0;
+int lock_bin            = 0;
+int lock_black          = 0;
+int lock_black_decision = 0;
+int lock_check          = 0;
 
 //escalar a grises
 int matrix_counter;
@@ -23,16 +24,19 @@ int gray_counter_col;
 //binarizar
 int bin_counter        = -1;
 
+
+//nearly black
+int row_black_start = 0;
+int row_black_end   = 0;
+int totalBlack = 0;
+int isBlack = 0;
+
+//datos
 int totalData;
 int totalSize;
 
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
-
-pthread_mutex_t lock_row = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t lock_col = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t lock_matrix = PTHREAD_MUTEX_INITIALIZER;
-
-pthread_mutex_t lockGray = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t lock_writeNearlyBlack = PTHREAD_MUTEX_INITIALIZER;
 pthread_barrier_t barrier;
 
 DATA *data;
@@ -80,6 +84,9 @@ void *threadMain(void *input)
     binaryData(data,inputData,bmpInfoHeader->width,bmpInfoHeader->height);
     pthread_barrier_wait(&barrier);
 
+    //Inicio nearlyBlack;
+    isNearlyBlack(data, inputData,bmpInfoHeader->width);
+
     // printf("Fin de threadMain\n");
     return NULL;
 }
@@ -98,6 +105,12 @@ int mainMenu(int cflag, int hflag, int uflag, int nflag, int bflag)
 
     pthread_t threadGroup[hflag];
     pthread_barrier_init(&barrier, NULL, hflag);
+
+    if(inputData->bflag == 1)
+    {
+        printf("| Imagen           | NearlyBlack          |\n");
+        printf("|-----------------------------------------|\n");
+    }
 
     while(imgCount < cflag)
     {
@@ -118,24 +131,14 @@ int mainMenu(int cflag, int hflag, int uflag, int nflag, int bflag)
             }
         }
 
-        imgCount++;
-        lock_read = 0;
-        lock_gray = 0;
-        lock_bin  = 0;
-        matrix_counter = 0;
-        gray_counter_col = 0;
-        gray_counter_row = 0;
 
-        printf("antes de imprimir\n");
+        imgCount++;
         writeBinaryImage(data,inputData,bmpFileHeader,bmpInfoHeader);
-        printf("despues de imprimir\n");
+        resetGlobalData();
     }
 
     pthread_mutex_destroy(&lock);
-    pthread_mutex_destroy(&lock_row);
-    pthread_mutex_destroy(&lock_col);
-    pthread_mutex_destroy(&lock_matrix);
-    pthread_mutex_destroy(&lockGray);
+    pthread_mutex_destroy(&lock_writeNearlyBlack);
     pthread_barrier_destroy(&barrier);
 
     return 0;
@@ -162,9 +165,6 @@ int mainMenu(int cflag, int hflag, int uflag, int nflag, int bflag)
 
     bmpFileHeader = ReadBMPFileHeader(fp, bmpFileHeader);
     bmpInfoHeader = ReadBMPInfoHeader(fp, bmpInfoHeader);
-
-    printf("bmpFile: %i\n",bmpFileHeader->size);
-    printf("size: %i\n", bmpInfoHeader->size);
 
     colSize = bmpInfoHeader->width * 4;
     // pixelArray = colSize * bmpInfoHeader->height;
@@ -203,51 +203,6 @@ int mainMenu(int cflag, int hflag, int uflag, int nflag, int bflag)
     return NULL;
  }
 
- unsigned char** createBuffer(int width, int height)
-{
-    unsigned char** data = NULL;
-    int colSize, i;
-
-    colSize = width * 4;
-
-    data = (unsigned char**)malloc(sizeof(unsigned char*) * height);
-
-    if(data != NULL)
-    {
-        for(i=0; i < height; i++)
-        {
-            data[i] = (unsigned char*)malloc(sizeof(unsigned char) * colSize);
-            if(data[i] == NULL)
-            {
-                printf("No existe espacio para asignar memoria a las filas de la matriz.\n");
-                exit(1);
-            }
-        }
-
-        return data;
-    }
-    else
-    {
-        printf("No hay espacio para los datos de la imagen.\n");
-        exit(1);
-    }
-}
-
-DATA* initializeData(DATA *data, int totalSize)
-{
-    int k = 0;
-    data->grayData   = (unsigned int*)malloc(sizeof(unsigned int) * totalSize);
-    data->binaryData = (unsigned int*)malloc(sizeof(unsigned int) * totalSize);
-
-    for(k = 0;k < totalSize; k++)
-    {
-        data->grayData[k] = -1;
-        data->binaryData[k] = -1;
-    }
-
-    return data;
-}
-
 void grayData(DATA *data, int height, int width)
 {
     int row = 0, col = 0, counter = 0;
@@ -265,7 +220,9 @@ void grayData(DATA *data, int height, int width)
                 gray_counter_row--;
             }
 
-            matrix_counter++; 
+            if(gray_counter_row >= 0)
+                matrix_counter++; 
+        
         } else {
             lock_gray_loop = 1;
         }
@@ -273,84 +230,23 @@ void grayData(DATA *data, int height, int width)
         row = gray_counter_row;
         col = gray_counter_col;
         counter = matrix_counter;
-
-        printf("row: %i | col: %i | counter: %i \n",gray_counter_row,gray_counter_col,matrix_counter);
         pthread_mutex_unlock(&lock);
 
-        // pthread_mutex_lock(&lock_row);
-        // if(gray_counter_row >= 0)
-        //     row = gray_counter_row;
-        // pthread_mutex_unlock(&lock_row);
-
-        // pthread_mutex_lock(&lock_col);
-        // if(gray_counter_col > (width*4))
-        // {
-        //     gray_counter_col = 0;
-        //     gray_counter_row--;
-        
-        //     gray_counter_col += 4;
-        //     col = gray_counter_col;
-        // }
-        // pthread_mutex_unlock(&lock_col);
-
-        // pthread_mutex_lock(&lock_matrix);
-        // if(matrix_counter < totalSize)
-        //     matrix_counter++;
-        // else
-        //     lock_gray = 1;
-        
-        // counter = matrix_counter;
-        // pthread_mutex_unlock(&lock_matrix);
-
-
-        // pthread_mutex_lock(&lock);
-        // if(gray_counter_row > -1) {
-        //     gray_counter_col++;
-
-        // } else {
-        //     gray_counter_col = 0;
-        //     gray_counter_row--;
-        // }
-
-        // if(gray_counter_col > 4)
-        //     lock_gray = 1;
-
-        // if(lock_gray != 1 && gray_counter_row > -1 && gray_counter_col < sizeCol)
-        //     matrix_counter++;
-        
-        // row = gray_counter_row;
-        // col = gray_counter_col;
-        // counter = matrix_counter;
-        
-        // pthread_mutex_unlock(&lock);
-
-
-
-        // if(counter >= totalSize)
-        //     lock_gray = 1;
-
-        if(lock_gray_loop != 1)
+        if(lock_gray_loop != 1 && row >= 0 && col <= (width*4))
         {
-            if(row >= 0 && col <= (width*4))
-            {
-                red   = data->pixelData[row][col-1];
-                green = data->pixelData[row][col-2];
-                blue  = data->pixelData[row][col-3];
+            red   = data->pixelData[row][col-1];
+            green = data->pixelData[row][col-2];
+            blue  = data->pixelData[row][col-3];
                 
-                scale = (int)red*0.3 + (int)green*0.59 + (int)blue*0.11;
-                data->grayData[counter] = scale;
-
-            }
-
+            scale = (int)red*0.3 + (int)green*0.59 + (int)blue*0.11;
+            data->grayData[counter] = scale;
         }
     }
-
-    printf("fin escala de grises\n");
 }
 
 void binaryData(DATA *data, INPUTDATA* inputData, int width, int height)
 {
-    int size = 0, counter = 0, valor = 0;
+    int counter = 0, valor = 0;
 
     while(lock_bin != 1)
     {
@@ -359,7 +255,7 @@ void binaryData(DATA *data, INPUTDATA* inputData, int width, int height)
         counter = bin_counter;
         pthread_mutex_unlock(&lock);
 
-        if(counter < totalSize)
+        if(counter < totalSize && lock_bin != 1)
         {
             valor = data->grayData[counter];
             if(valor > inputData->uflag)
@@ -380,41 +276,69 @@ void binaryData(DATA *data, INPUTDATA* inputData, int width, int height)
     }
 }
 
-int checkPixelData(DATA *data, int width, int height)
+void isNearlyBlack(DATA *data, INPUTDATA* inputData, int width)
 {
-    int i = 0, valor;
-    for(i = 0;i < (height*width);i++)
+    int i = 0, start_row = 0, end_row = 0, value = 0;
+    float final_value = 0;
+
+    while(lock_black != 1)
     {
-        valor = data->grayData[i];
-        if(valor == -1)
+        pthread_mutex_lock(&lock);
+        if(row_black_end < totalSize)
         {
-            // printf("error culiao\n");
-            return 1;
+            row_black_end += width - 1;
+
+            start_row = row_black_start;
+            end_row   = row_black_end;
+
+            row_black_start = row_black_end;
         }
+        else
+            lock_black = 1;
+        pthread_mutex_unlock(&lock);
 
-        // printf("asd: %i %i\n",valor, i);
-
+        if(end_row < totalSize)
+        {
+            for(i = start_row; i < end_row; i++)
+            {
+                if(data->binaryData[i] == 0)
+                {
+                    value++;
+                }
+            }
+        }
+        
+        pthread_mutex_lock(&lock_writeNearlyBlack);
+        if(end_row < totalSize)
+        {
+            totalBlack += value;
+            value = 0;
+        }   
+        pthread_mutex_unlock(&lock_writeNearlyBlack);
     }
 
-    return 0;
-}
-
-int checkBinData(DATA *data, int width, int height)
-{
-    int i = 0, valor;
-    for(i = 0;i < (height*width);i++)
+    pthread_mutex_lock(&lock);
+    if(lock_black_decision != 1)
     {
-        valor = data->binaryData[i];
-        if(valor == -1)
+        lock_black_decision = 1;
+        final_value = ((float)totalBlack/(float)totalSize) * 100;
+        
+        if(inputData->bflag == 1)
         {
-            // printf("error culiao\n");
-            return 1;
+            if(final_value > inputData->nflag)
+            {
+                isBlack = 1;
+                printf("| imagen_%i         | Yes                  |\n", inputData->imgCount);
+            } 
+            else
+            {
+                printf("| imagen_%i         | No                  |\n", inputData->imgCount);
+            }
         }
+        
     }
-
-    return 0;
+    pthread_mutex_unlock(&lock);
 }
-
 
 void writeBinaryImage(DATA* data, INPUTDATA* inputData, BITMAPFILEHEADER* bmpFileHeader, BITMAPINFOHEADER* bmpInfoHeader)
 {
@@ -499,4 +423,65 @@ void writeBinaryImage(DATA* data, INPUTDATA* inputData, BITMAPFILEHEADER* bmpFil
         k++;
     }    
     fclose(fp);
+}
+
+unsigned char** createBuffer(int width, int height)
+{
+    unsigned char** data = NULL;
+    int colSize, i;
+
+    colSize = width * 4;
+
+    data = (unsigned char**)malloc(sizeof(unsigned char*) * height);
+
+    if(data != NULL)
+    {
+        for(i=0; i < height; i++)
+        {
+            data[i] = (unsigned char*)malloc(sizeof(unsigned char) * colSize);
+            if(data[i] == NULL)
+            {
+                printf("No existe espacio para asignar memoria a las filas de la matriz.\n");
+                exit(1);
+            }
+        }
+
+        return data;
+    }
+    else
+    {
+        printf("No hay espacio para los datos de la imagen.\n");
+        exit(1);
+    }
+}
+
+DATA* initializeData(DATA *data, int totalSize)
+{
+    int k = 0;
+    data->grayData   = (unsigned int*)malloc(sizeof(unsigned int) * totalSize);
+    data->binaryData = (unsigned int*)malloc(sizeof(unsigned int) * totalSize);
+
+    for(k = 0;k < totalSize; k++)
+    {
+        data->grayData[k] = -1;
+        data->binaryData[k] = -1;
+    }
+
+    return data;
+}
+
+void resetGlobalData()
+{    
+    lock_read           = 0;
+    lock_gray           = 0;
+    lock_gray_loop      = 0;
+    lock_bin            = 0;
+    lock_black          = 0;
+    lock_black_decision = 0;
+    lock_check          = 0;
+    bin_counter         = -1;
+    row_black_start     = 0;
+    row_black_end       = 0;
+    totalBlack          = 0;
+    isBlack             = 0;
 }
