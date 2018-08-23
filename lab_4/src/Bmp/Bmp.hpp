@@ -51,8 +51,8 @@ class Bmp {
 
     public:
 
-    /* Setters and Getters */
-    WORD Bmp::getWidth();
+        /* Setters and Getters */
+        WORD Bmp::getWidth();   
 };
 
 #endif
