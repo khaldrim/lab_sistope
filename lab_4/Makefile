@@ -1,4 +1,4 @@
-CC=u++
+CC=../u++-7.0.0/bin/u++
 route=
 
 all: ./src/main.o ./src/Pipeline/Pipeline.o ./src/Pipeline/ReadImage/ReadImage.o ./src/Pipeline/GreyData/GreyData.o ./src/Pipeline/NearlyBlack/NearlyBlack.o ./src/Pipeline/WriteImage/WriteImage.o ./src/Pipeline/BinData/BinData.o

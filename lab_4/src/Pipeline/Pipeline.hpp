@@ -3,12 +3,28 @@
 
 class Pipeline {
     private:
-        int imgCount;
+        int cflag;
+        int uflag;
+        int nflag;
+        int bflag;
+
     public:
 
-    /* Get and Set imgCount */
-    int getImgCount();
-    void setImgCount(int value);
+    /* Get and Set cflag */
+    int getCflag();
+    void setCflag(int value);
+
+    /* Get and Set uflag */
+    int getUflag();
+    void setUflag(int value);
+
+    /* Get and Set nflag */
+    int getNflag();
+    void setNflag(int value);
+
+    /* Get and Set bflag */
+    int getBflag();
+    void setBflag(int value);
 
     int start();
 };

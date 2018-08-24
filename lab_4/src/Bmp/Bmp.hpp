@@ -10,7 +10,7 @@ class Bmp {
 
         /* File header */
         char type[3];
-        DWORD size;
+        DWORD fileSize;
         WORD reserved1;
         WORD reserved2;
         DWORD offbits;
@@ -52,7 +52,7 @@ class Bmp {
     public:
 
         /* Setters and Getters */
-        WORD Bmp::getWidth();   
+        WORD getWidth();   
 };
 
 #endif

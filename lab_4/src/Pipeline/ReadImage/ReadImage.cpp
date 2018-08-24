@@ -1,6 +1,6 @@
 #include <iostream>
 #include "ReadImage.hpp"
-#include "../Bmp/Bmp.hpp"
+#include "../../Bmp/Bmp.hpp"
 
 using namespace std;
 
@@ -9,9 +9,7 @@ void ReadImage::printRead(){
 }
 
 void ReadImage::readBmpInfoHeader(){
-    Bmp bmp;
 
-    bmp.
 }
 
 void ReadImage::readBmpFileHeader(){

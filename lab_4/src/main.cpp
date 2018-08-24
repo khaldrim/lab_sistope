@@ -1,12 +1,12 @@
 #include <iostream>
 #include <unistd.h>
 #include "./Pipeline/Pipeline.hpp"
+#include "../../u++-7.0.0/inc/uC++.h"
 
 using namespace std;
 
-int main(int argc, char** argv){
+int UMain::main(int argc, char** argv){
     int cflag, uflag, nflag, bflag, arg, pipe;
-    cout << "Hello, world!\n";
 
     while((arg = getopt(argc, argv, ":c:u:n:b")) != -1){
         switch(arg){
@@ -36,17 +36,20 @@ int main(int argc, char** argv){
         }
     }
 
-    Pipeline p;
+    Pipeline *p = new Pipeline();
 
-    p.setImgCount(cflag);
-    pipe = p.start();
+    p -> setCflag(cflag);
+    p -> setUflag(uflag);
+    p ->setNflag(nflag);
+    p ->setBflag(bflag);
+
+    pipe = p -> start();
 
     if(pipe == 0){
         cout << "Pipeline finalizado correctamente.\n";
+        return 0;
     } else {
         cout << "Pipeline finalizado incorrectamente.\n";
+        return 1;
     }
-
-    // printf("cflag=%d,uflag=%d, nflag=%d, bflag=%d \n", cflag,uflag, nflag, bflag);
-    return 0;
 }
