@@ -1,17 +1,16 @@
 #ifndef _READIMAGE_HPP_
 #define _READIMAGE_HPP_
 
+#include "../../Bmp/Bmp.hpp"
+
 class ReadImage {
     private:
-        int stage;
 
     public:
-        int saludo;
 
-    void printRead();
-    void readBmpInfoHeader();
-    void readBmpFileHeader();
-    void readBmpFile();
+	Bmp* ReadImage::readBmpInfoHeader(Bmp *file, FILE *fp);
+	Bmp* ReadImage::readBmpFileHeader(Bmp *file, FILE *fp);
+	Bmp* ReadImage::readBmpFile(Bmp *img, int img);
 };
 
 #endif

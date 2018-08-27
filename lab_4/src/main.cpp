@@ -1,11 +1,10 @@
 #include <iostream>
 #include <unistd.h>
 #include "./Pipeline/Pipeline.hpp"
-#include "../../u++-7.0.0/inc/uC++.h"
 
 using namespace std;
 
-int UMain::main(int argc, char** argv){
+int main(int argc, char** argv){
     int cflag, uflag, nflag, bflag, arg, pipe;
 
     while((arg = getopt(argc, argv, ":c:u:n:b")) != -1){
@@ -40,8 +39,8 @@ int UMain::main(int argc, char** argv){
 
     p -> setCflag(cflag);
     p -> setUflag(uflag);
-    p ->setNflag(nflag);
-    p ->setBflag(bflag);
+    p -> setNflag(nflag);
+    p -> setBflag(bflag);
 
     pipe = p -> start();
 
