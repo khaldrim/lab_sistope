@@ -24,7 +24,7 @@ class Bmp {
         DWORD compression;
         DWORD sizeImage;
         LONG xPelsPerMeter;
-        LONG yPelsperMeter;
+        LONG yPelsPerMeter;
         DWORD used;
         DWORD important;
         DWORD redMask;
@@ -53,7 +53,7 @@ class Bmp {
 
         /* Setters and Getters */
         void setType(FILE *fp);
-        char getType();
+        char* getType();
 
         void setFileSize(FILE *fp);
         DWORD getFileSize();

@@ -6,8 +6,8 @@
 using namespace std;
 
 /* Setters and Getters for File Header */
-void Bmp::setType(FILE *fp){ char fileType[3] = {'\0','\0','\0'}; fread(&fileType, 1, 2, fp); Bmp::type = fileType; }
-char Bmp::getType(){ return Bmp::type; }
+void Bmp::setType(FILE *fp){ fread(Bmp::type, 1, 2, fp); }
+char* Bmp::getType(){ return Bmp::type; }
 
 void Bmp::setFileSize(FILE *fp){ Bmp::fileSize = (unsigned int) ReadLE4(fp); }
 DWORD Bmp::getFileSize(){ return Bmp::fileSize; }
@@ -52,7 +52,7 @@ void Bmp::setBlueMask(FILE *fp){ Bmp::blueMask = (unsigned int) ReadLE4(fp); }
 
 void Bmp::setAlphaMask(FILE *fp){ Bmp::alphaMask = (unsigned int) ReadLE4(fp); }
 
-void Bmp::setCsType(FILE *fp){ Bmp::cstype = (unsigned int) ReadLE4(fp); }
+void Bmp::setCsType(FILE *fp){ Bmp::csType = (unsigned int) ReadLE4(fp); }
 
 void Bmp::setXRed(FILE *fp){ Bmp::ciexyzXRed = (unsigned int) ReadLE4(fp); }
 
@@ -104,6 +104,7 @@ unsigned short Bmp::ReadLE2(FILE *fp)
     for (i = 1; i >= 0; i--) {
         result = (result << 8) | (unsigned short) buf[i];
     }
+}
 
 /*
  * Descripcion: Funcion que permite mover bits desde 'Big-Endian' a 'Litle-Endian',

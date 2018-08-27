@@ -1,4 +1,5 @@
 #include <iostream>
+#include <stdio.h>
 #include <string.h>
 #include "ReadImage.hpp"
 #include "../../Bmp/Bmp.hpp"
@@ -53,11 +54,11 @@ Bmp* ReadImage::readBmpFileHeader(Bmp *file, FILE *fp){
     return file;
 }
 
-Bmp* ReadImage::readBmpFile(Bmp *img, int img){
+Bmp* ReadImage::readBmpFile(Bmp *file, int img){
 
 	FILE *fp;
     char fileNumber[5];
-    char fileName[35] = "imagenes/imagen_";
+    char fileName[50] = "../../../img/imagen_";
 
     sprintf(fileNumber, "%d", img);
     strcat(fileName, fileNumber);
@@ -69,10 +70,10 @@ Bmp* ReadImage::readBmpFile(Bmp *img, int img){
         exit(1);
     }
 
-	this -> readBmpInfoHeader(img);
-	this -> readBmpFileHeader(img);
+	this -> ReadImage::readBmpInfoHeader(file, fp);
+	this -> ReadImage::readBmpFileHeader(file, fp);
 
-	cout << "El largo de la imagen es: " << img -> getWidth() << "\n";
+	cout << "El largo de la imagen es: " << file -> getWidth() << "\n";
 
-	return img;
+	return file;
 }

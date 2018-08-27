@@ -1,7 +1,7 @@
 #include <iostream>
 #include "Pipeline.hpp"
-#include "../Pipeline/ReadImage/ReadImage.hpp"
 #include "../Bmp/Bmp.hpp"
+#include "../Pipeline/ReadImage/ReadImage.hpp"
 
 using namespace std;
 
@@ -44,16 +44,16 @@ void Pipeline::setBflag(int value){
 int Pipeline::start(){
     int i = 0;
 
-    Bmp img[getCflag()];
+    Bmp img[this -> getCflag()];
     ReadImage *r = new ReadImage();
     
     cout << "Pipeline Start\n";
 
-    while(i < getCflag()){
-        cout << "Pipeline imgCount: " << i << "\n";
+    while(i < this -> getCflag()){
+        cout << "Pipeline imgCount: " << i+1 << "\n";
         cout << "Pipeline readImage\n";
 
-        r -> readBmpFile(&img[i], i);
+        r -> readBmpFile(&img[i], i+1);
 
         i++;
     }
