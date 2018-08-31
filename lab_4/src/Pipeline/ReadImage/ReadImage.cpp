@@ -4,22 +4,32 @@
 #include <string.h>
 #include "ReadImage.hpp"
 #include "../../Bmp/Bmp.hpp"
+#include "../Pipeline.hpp"
 
 using namespace std;
 
-ReadImage::ReadImage(){  cout << "Object ReadImage Delete." << endl; }
+ReadImage::ReadImage(int img){  this -> setCflag(img); cout << "Object ReadImage Started." << endl; }
 ReadImage::~ReadImage(){ cout << "Object ReadImage Delete." << endl; }
 
-void ReadImage::main(Bmp *file, int turn){
-    readBmpFile(file, turn);
+void ReadImage::main(){    
+    Bmp img[this -> getCflag()];
+
+    for(int i = 0; i < this-> getCflag(); i++){
+
+        readBmpFile(&img[i], i+1);
+
+        //la escribo en el buffer   
+    }
+
+    cout << "Fin de ReadImage." << endl;
 }
 
-void ReadImage::start(int cflag){
-    Bmp img[cflag];
+void ReadImage::setCflag(int c){
+    this -> cflag = c;
+}
 
-    for(int i = 0; i < cflag; i++){
-        main(&img[i], i+1);
-    }
+int ReadImage::getCflag(){
+    return this -> cflag;
 }
 
 Bmp* ReadImage::readBmpInfoHeader(Bmp *file, FILE *fp){

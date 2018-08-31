@@ -1,6 +1,7 @@
 #include <iostream>
 #include "Pipeline.hpp"
 #include "../Bmp/Bmp.hpp"
+#include "../Buffer/Buffer.hpp"
 #include "../Pipeline/ReadImage/ReadImage.hpp"
 
 using namespace std;
@@ -42,12 +43,14 @@ void Pipeline::setBflag(int value){
 }
 
 int Pipeline::start(){
-    ReadImage r = ReadImage();
-    
     cout << "Pipeline Start\n";
-    r -> start(this -> getCflag());
+    
+    Buffer buffer[4];
 
-    delete r;
+    /* Stages */
+    ReadImage r { this-> getCflag() };
+    
+
     /*
 
     while(i < this -> getCflag()){
