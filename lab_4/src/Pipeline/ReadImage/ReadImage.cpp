@@ -8,20 +8,29 @@
 
 using namespace std;
 
-ReadImage::ReadImage(int img){  this -> setCflag(img); cout << "Object ReadImage Started." << endl; }
+ReadImage::ReadImage(int img, Buffer *m){  
+    this -> setCflag(img);
+    this -> setMonitor(m);
+
+    cout << "Object ReadImage Started." << endl; 
+}
 ReadImage::~ReadImage(){ cout << "Object ReadImage Delete." << endl; }
 
-void ReadImage::main(){    
-    Bmp img[this -> getCflag()];
+void ReadImage::main(){
+    cout << "   Inicio de Main ReadImage." << endl;
 
-    for(int i = 0; i < this-> getCflag(); i++){
-
-        readBmpFile(&img[i], i+1);
-
-        //la escribo en el buffer   
+    for(int i = 0; i < this -> getCflag(); i++){
+        Bmp *file = new Bmp();
+        file = readBmpFile(file, i+1);
+        this -> buffer -> insertBmp(file, 1);
+        delete file;
     }
+    
+    cout << "   Fin de Main ReadImage." << endl;
+}
 
-    cout << "Fin de ReadImage." << endl;
+void ReadImage::setMonitor(Buffer *m){
+    this -> buffer = m;
 }
 
 void ReadImage::setCflag(int c){
@@ -79,7 +88,7 @@ Bmp* ReadImage::readBmpFileHeader(Bmp *file, FILE *fp){
     return file;
 }
 
-void ReadImage::readBmpFile(Bmp *file, int img){
+Bmp* ReadImage::readBmpFile(Bmp *file, int img){
 
     FILE *fp;
 
@@ -98,9 +107,8 @@ void ReadImage::readBmpFile(Bmp *file, int img){
         exit(1);
     }
     
-
 	this -> ReadImage::readBmpInfoHeader(file, fp);
 	this -> ReadImage::readBmpFileHeader(file, fp);
 
-    cout << "termino de leer." << endl; 
+    return file;
 }

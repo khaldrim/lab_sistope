@@ -45,11 +45,11 @@ void Pipeline::setBflag(int value){
 int Pipeline::start(){
     cout << "Pipeline Start\n";
     
-    Buffer buffer[4];
+    /* Monitor */
+    Buffer buffer;
 
     /* Stages */
-    ReadImage r { this-> getCflag() };
-    
+    ReadImage read { this-> getCflag() , &buffer };
 
     /*
 

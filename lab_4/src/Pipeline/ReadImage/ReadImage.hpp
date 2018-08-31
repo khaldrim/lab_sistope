@@ -1,4 +1,5 @@
 #include "../../Bmp/Bmp.hpp"
+#include "../../Buffer/Buffer.hpp"
 #include "../../../../u++-7.0.0/inc/uC++.h"
 
 #ifndef _READIMAGE_HPP_
@@ -6,20 +7,21 @@
 
 _Task ReadImage {
     int cflag;
+    Buffer *buffer;
 
     private:
-    	void main();
+        void main();
 
     public:
-    	ReadImage(int img);
+    	ReadImage(int img, Buffer *m);
     	~ReadImage();
     	
         void setCflag(int c);
         int getCflag();
-    	void start(int cflag);
+        void setMonitor(Buffer *m);
 		Bmp* readBmpInfoHeader(Bmp *file, FILE *fp);
 		Bmp* readBmpFileHeader(Bmp *file, FILE *fp);
-		void readBmpFile(Bmp *file, int img);
+		Bmp* readBmpFile(Bmp *file, int img);
 };
 
 
