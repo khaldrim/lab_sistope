@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <stdio.h>
 #include <string.h>
 #include "ReadImage.hpp"
@@ -6,6 +7,20 @@
 
 using namespace std;
 
+ReadImage::ReadImage(){  cout << "Object ReadImage Delete." << endl; }
+ReadImage::~ReadImage(){ cout << "Object ReadImage Delete." << endl; }
+
+void ReadImage::main(Bmp *file, int turn){
+    readBmpFile(file, turn);
+}
+
+void ReadImage::start(int cflag){
+    Bmp img[cflag];
+
+    for(int i = 0; i < cflag; i++){
+        main(&img[i], i+1);
+    }
+}
 
 Bmp* ReadImage::readBmpInfoHeader(Bmp *file, FILE *fp){
 	file -> setType(fp);
@@ -54,26 +69,28 @@ Bmp* ReadImage::readBmpFileHeader(Bmp *file, FILE *fp){
     return file;
 }
 
-Bmp* ReadImage::readBmpFile(Bmp *file, int img){
+void ReadImage::readBmpFile(Bmp *file, int img){
 
-	FILE *fp;
-    char fileNumber[5];
-    char fileName[50] = "../../../img/imagen_";
+    FILE *fp;
+
+    char fileNumber[10];
+    char fileName[50] = "./img/imagen_";
 
     sprintf(fileNumber, "%d", img);
     strcat(fileName, fileNumber);
     strcat(fileName, ".bmp");
 
-    if((fp = fopen(fileName,"rb")) == NULL)
+    cout << "fileName: " << fileName << endl;
+    
+    if((fp = fopen(fileName, "rb")) == NULL)
     {
         printf("No se logro abrir el archivo: %s.\n", fileName);
         exit(1);
     }
+    
 
 	this -> ReadImage::readBmpInfoHeader(file, fp);
 	this -> ReadImage::readBmpFileHeader(file, fp);
 
-	cout << "El largo de la imagen es: " << file -> getWidth() << "\n";
-
-	return file;
+    cout << "termino de leer." << endl; 
 }

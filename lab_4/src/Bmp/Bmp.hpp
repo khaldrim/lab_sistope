@@ -103,8 +103,6 @@ class Bmp {
         void setProfileSize(FILE *fp);
         void setReserved(FILE *fp);
 
-
-
         /* Read Little-Endian 2,4 y 8 bytes */
         unsigned short ReadLE2(FILE *fp);
         unsigned int ReadLE4(FILE *fp);

@@ -42,12 +42,13 @@ void Pipeline::setBflag(int value){
 }
 
 int Pipeline::start(){
-    int i = 0;
-
-    Bmp img[this -> getCflag()];
-    ReadImage *r = new ReadImage();
+    ReadImage r = ReadImage();
     
     cout << "Pipeline Start\n";
+    r -> start(this -> getCflag());
+
+    delete r;
+    /*
 
     while(i < this -> getCflag()){
         cout << "Pipeline imgCount: " << i+1 << "\n";
@@ -57,6 +58,8 @@ int Pipeline::start(){
 
         i++;
     }
+
+    */
 
     return 0;
 }
