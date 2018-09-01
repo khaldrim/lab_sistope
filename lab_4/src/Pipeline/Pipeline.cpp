@@ -1,10 +1,19 @@
-#include <iostream>
 #include "Pipeline.hpp"
-#include "../Bmp/Bmp.hpp"
 #include "../Buffer/Buffer.hpp"
 #include "../Pipeline/ReadImage/ReadImage.hpp"
 
-using namespace std;
+Pipeline::Pipeline(int c, int u, int n, int b){
+    cout << "Object Pipeline created." << endl;
+
+    setCflag(c);
+    setUflag(u);
+    setNflag(n);
+    setBflag(b);
+}
+
+Pipeline::~Pipeline(){
+    cout << "Object Pipeline deleted." << endl;
+}
 
 /* Getter and Setter Cflag */
 int Pipeline::getCflag(){
@@ -45,14 +54,13 @@ void Pipeline::setBflag(int value){
 int Pipeline::start(){
     cout << "Pipeline Start\n";
     
-    /* Monitor */
-    Buffer buffer;
+    /* Monitor , el argumento define el tamaño de la cola. */
+    Buffer buffer { 5 };
 
     /* Stages */
-    ReadImage read { this-> getCflag() , &buffer };
+    ReadImage read { this-> getCflag() , buffer };
 
     /*
-
     while(i < this -> getCflag()){
         cout << "Pipeline imgCount: " << i+1 << "\n";
         cout << "Pipeline readImage\n";
@@ -61,7 +69,6 @@ int Pipeline::start(){
 
         i++;
     }
-
     */
 
     return 0;

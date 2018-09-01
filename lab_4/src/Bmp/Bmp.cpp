@@ -1,9 +1,11 @@
-#include <iostream>
-#include <stdio.h>
-#include <stdlib.h>
 #include "Bmp.hpp"
 
-using namespace std;
+/* Constructor and Destructor */
+Bmp::Bmp(){
+    cout << "Object Bmp created." << endl;
+}
+
+Bmp::~Bmp(){ cout << "Object Bmp deleted." << endl; }
 
 /* Setters and Getters for File Header */
 void Bmp::setType(FILE *fp){ fread(Bmp::type, 1, 2, fp); }
@@ -104,6 +106,8 @@ unsigned short Bmp::ReadLE2(FILE *fp)
     for (i = 1; i >= 0; i--) {
         result = (result << 8) | (unsigned short) buf[i];
     }
+
+    return result;
 }
 
 /*
@@ -146,4 +150,49 @@ unsigned int Bmp::ReadLE8(FILE *fp)
     }
 
     return result;
+}
+
+unsigned char** Bmp::createPixelMatrix(int width, int height){
+    unsigned char** data = NULL;
+    int colSize, i;
+
+    colSize = width * 4;
+
+    data = (unsigned char**)malloc(sizeof(unsigned char*) * height);
+
+    if(data != NULL)
+    {
+        for(i=0; i < height; i++)
+        {
+            data[i] = (unsigned char*)malloc(sizeof(unsigned char) * colSize);
+            if(data[i] == NULL)
+            {
+                printf("No existe espacio para asignar memoria a las filas de la matriz.\n");
+                exit(1);
+            }
+        }
+
+        return data;
+    }
+    else
+    {
+        printf("No hay espacio para los datos de la imagen.\n");
+        exit(1);
+    }
+}
+
+unsigned int* Bmp::createGreyMatrix(int width, int height){
+    int totalSize = width * height * 4;
+    unsigned int* data = NULL;
+
+    data = (unsigned int*)malloc(sizeof(unsigned int) * totalSize);
+    return data;
+}
+
+unsigned int* Bmp::createBinMatrix(int width, int height){
+    int totalSize = width * height * 4;
+    unsigned int* data = NULL;
+
+    data = (unsigned int*)malloc(sizeof(unsigned int) * totalSize);
+    return data;
 }

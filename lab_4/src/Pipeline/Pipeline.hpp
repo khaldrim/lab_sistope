@@ -1,6 +1,10 @@
 #ifndef _PIPELINE_HPP_
 #define _PIPELINE_HPP_
 
+#include <iostream>
+
+using namespace std;
+
 class Pipeline {
     private:
         int cflag;
@@ -9,6 +13,10 @@ class Pipeline {
         int bflag;
 
     public:
+
+    /* Constructor and Destructor */
+    Pipeline(int c, int u, int n, int b);
+    ~Pipeline();
 
     /* Get and Set cflag */
     int getCflag();

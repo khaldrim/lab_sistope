@@ -1,6 +1,12 @@
 #ifndef _BMP_HPP_
 #define _BMP_HPP_
 
+#include <iostream>
+#include <stdio.h>
+#include <stdlib.h>
+
+using namespace std;
+
 typedef unsigned short WORD;     /* 2 bytes */
 typedef unsigned int DWORD;      /* 4 bytes */
 typedef unsigned long long LONG; /* 8 bytes */
@@ -9,22 +15,22 @@ class Bmp {
     private:
 
         /* File header */
-        char type[3];
+        char  type[3];
         DWORD fileSize;
-        WORD reserved1;
-        WORD reserved2;
+        WORD  reserved1;
+        WORD  reserved2;
         DWORD offbits;
 
         /* Info header */
         DWORD size;
-        LONG width;
-        LONG height;
-        WORD planes;
-        WORD bitPerPixel;
+        LONG  width;
+        LONG  height;
+        WORD  planes;
+        WORD  bitPerPixel;
         DWORD compression;
         DWORD sizeImage;
-        LONG xPelsPerMeter;
-        LONG yPelsPerMeter;
+        LONG  xPelsPerMeter;
+        LONG  yPelsPerMeter;
         DWORD used;
         DWORD important;
         DWORD redMask;
@@ -49,7 +55,16 @@ class Bmp {
         DWORD profileSize;
         DWORD reserved; 
 
+        /* Data */
+        unsigned char** pixelData;
+        unsigned int*   binaryData;
+        unsigned int*   grayData;
+
     public:
+
+        /* Constructor and Destructor */
+        Bmp();
+        ~Bmp();
 
         /* Setters and Getters */
         void setType(FILE *fp);
@@ -108,6 +123,10 @@ class Bmp {
         unsigned int ReadLE4(FILE *fp);
         unsigned int ReadLE8(FILE *fp);
 
+        /* Matrix contains data of bmp */
+        unsigned char** createPixelMatrix(int width, int height);
+        unsigned int* createGreyMatrix(int width, int height);
+        unsigned int* createBinMatrix(int width, int height);
 };
 
 #endif

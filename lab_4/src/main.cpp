@@ -1,10 +1,25 @@
 #include <iostream>
 #include <unistd.h>
 #include "./Pipeline/Pipeline.hpp"
+#include "uC++.h"
 
 using namespace std;
 
-int main(int argc, char** argv){
+
+void uMain::main(){
+    int cflag, uflag, nflag, bflag;
+
+    cflag = 2;
+    uflag = 50;
+    nflag = 50;
+    bflag = 1;
+
+    Pipeline p {cflag, uflag, nflag, bflag};
+    p.start();
+}
+
+/*
+void Umain::main(int argc, char** argv){
     int cflag, uflag, nflag, bflag, arg, pipe;
 
     while((arg = getopt(argc, argv, ":c:u:n:b")) != -1){
@@ -52,3 +67,4 @@ int main(int argc, char** argv){
         return 1;
     }
 }
+*/

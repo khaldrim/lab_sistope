@@ -7,13 +7,13 @@
 
 _Task ReadImage {
     int cflag;
-    Buffer *buffer;
+    Buffer &buffer;
 
     private:
         void main();
 
     public:
-    	ReadImage(int img, Buffer *m);
+    	ReadImage(int img, Buffer &m);
     	~ReadImage();
     	
         void setCflag(int c);

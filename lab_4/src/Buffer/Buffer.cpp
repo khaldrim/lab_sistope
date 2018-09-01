@@ -1,28 +1,25 @@
-#include <iostream>
 #include "Buffer.hpp"
 
-using namespace std;
-
-Buffer::Buffer(){
-	std::vector<Bmp> imagesRead;
-    std::vector<Bmp> imagesGrey;
-    std::vector<Bmp> imagesBin;
-    std::vector<Bmp> imagesWrite;
-
+Buffer::Buffer(int m){
+	this -> amount = m;
 	cout << "Object Buffer Started." << endl; 
-}
-Buffer::~Buffer(){ cout << "Object Buffer Delete." << endl; }
+};
 
-void insertBmp(Bmp *bmp, int stage){
-	cout << "Start Insert Bmp in vector" << endl;
+Buffer::~Buffer(){ cout << "Object Buffer Delete." << endl; };
 
-	if(stage == 1){
-		imagesRead.push_back(bmp);
-	} else {
-		cout << "Vector de imagenes Bmp desconocido." << endl;
-	}
-	
-	cout << "End Insert Bmp in vector" << endl;
+
+void Buffer::insertBmp(Bmp bmp){
+	cout << "Start Insert Bmp in queue" << endl;
+
+	if(this -> amount == img.size())
+		this -> empty.wait();
+
+	cout << "Cola no llena" << endl;
+
+	img.push(bmp);
+	amount++;
+
+	cout << "End Insert Bmp in queue" << endl;
 }
 
 /*

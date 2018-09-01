@@ -8,12 +8,13 @@
 
 using namespace std;
 
-ReadImage::ReadImage(int img, Buffer *m){  
+ReadImage::ReadImage(int img, Buffer &m){
     this -> setCflag(img);
     this -> setMonitor(m);
 
     cout << "Object ReadImage Started." << endl; 
 }
+
 ReadImage::~ReadImage(){ cout << "Object ReadImage Delete." << endl; }
 
 void ReadImage::main(){
@@ -22,14 +23,14 @@ void ReadImage::main(){
     for(int i = 0; i < this -> getCflag(); i++){
         Bmp *file = new Bmp();
         file = readBmpFile(file, i+1);
-        this -> buffer -> insertBmp(file, 1);
+        this -> buffer -> insertBmp(file);
         delete file;
     }
     
     cout << "   Fin de Main ReadImage." << endl;
 }
 
-void ReadImage::setMonitor(Buffer *m){
+void ReadImage::setMonitor(Buffer &m){
     this -> buffer = m;
 }
 
@@ -109,6 +110,9 @@ Bmp* ReadImage::readBmpFile(Bmp *file, int img){
     
 	this -> ReadImage::readBmpInfoHeader(file, fp);
 	this -> ReadImage::readBmpFileHeader(file, fp);
+    this -> file -> createPixelData(file -> getWidth(), file -> getHeight());
+    this -> file -> createBinData(file -> getWidth(), file -> getHeight());
+    this -> file -> createGreyData(file -> getWidth(), file -> getHeight());
 
     return file;
 }
